@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THERA CONNECT V300</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
@@ -25,9 +26,9 @@
                 <button class="nav-btn active" onclick="showPage('page-a')">🏠 Accueil</button>
                 <button class="nav-btn" onclick="showPage('page-b')">👥 Profils</button>
                 <button class="nav-btn" onclick="showPage('page-c')">🔓 Accès</button>
-                <button class="nav-btn" onclick="showPage('page-d')">📊 Historique</button>
-                <button class="nav-btn" onclick="showPage('page-alerts')">⚠️ Alertes</button>
                 <button class="nav-btn" onclick="showPage('page-keys')">🔑 Clés d'accès</button>
+                <button class="nav-btn" onclick="showPage('page-alerts')">⚠️ Alertes</button>
+                <button class="nav-btn" onclick="showPage('page-d')">📊 Historique</button>
                 <button class="nav-btn" onclick="showPage('page-g')">🛠️ Paramètres</button>
                 <button class="nav-btn" onclick="showPage('page-h')">🗑️ Corbeille</button>
                 <button class="nav-btn" onclick="showPage('page-i')">🖥️ Système</button>
@@ -35,48 +36,44 @@
         </aside>
 
         <main class="content-area">
-           <div id="page-welcome" class="page" style="display:none;">
-    <div style="text-align:center; padding: 40px 20px; max-width: 500px; margin: auto;">
-        <div class="logo-text" style="font-size: 2.5rem; margin-bottom:10px;">THERA<span>CONNECT</span></div>
-        <p style="color:var(--text-sub);">Configuration de votre interface professionnelle.</p>
-        
-        <div class="card" style="margin-top:40px; text-align:left;">
-            <h3>🚀 Premier Accès</h3>
-            <label>Lieu / Site</label>
-            <input type="text" id="welcome-portal-location" class="input-text" placeholder="Ex: Entrée Nord">
 
-            <label>Nom de l'accès</label>
-            <input type="text" id="welcome-portal-name" class="input-text" placeholder="Ex: Portail Principal">
-            
-            <label>Numéro du Relais (1-16)</label>
-            <input type="number" id="welcome-portal-relay" class="input-text" placeholder="1" min="1" max="16">
+            <section id="page-welcome" class="page" style="display:none;">
+                <div style="text-align:center; padding: 40px 20px; max-width: 500px; margin: auto;">
+                    <div class="logo-text" style="font-size: 2.5rem; margin-bottom:10px;">THERA<span>CONNECT</span></div>
+                    <p style="color:var(--text-sub);">Configuration de votre interface professionnelle.</p>
+                    
+                    <div class="card" style="margin-top:40px; text-align:left;">
+                        <h3>🚀 Premier Accès</h3>
+                        <label>Nom de l'accès</label>
+                        <input type="text" id="welcome-portal-name" class="input-text" placeholder="Ex: Portail Principal">
+                        
+                        <label>Numéro du Relais (1-16)</label>
+                        <input type="number" id="welcome-portal-relay" class="input-text" placeholder="1" min="1" max="16">
 
-            <div class="divider" style="margin: 20px 0; border-top: 1px solid #eee;"></div>
+                        <div class="divider" style="margin: 20px 0; border-top: 1px solid #eee;"></div>
 
-            <h3>🔌 Connexion Boîtier</h3>
-            <label>Marque du matériel</label>
-            <select id="welcome-portal-brand" class="input-text">
-                <option value="kincony">Kincony</option>
-                <option value="norvi">Norvi</option>
-                <option value="shelly">Shelly</option>
-                <option value="industrial_shields">Industrial Shields</option>
-                <option value="arduino_opta">Arduino Opta</option>
-                <option value="olimex">Olimex</option>
-                <option value="brainboxes">Brainboxes</option>
-            </select>
+                        <h3>🔌 Connexion Boîtier</h3>
+                        <label>Marque du matériel</label>
+                        <select id="welcome-portal-brand" class="input-text">
+                            <option value="kincony">Kincony</option>
+                            <option value="norvi">Norvi</option>
+                            <option value="shelly">Shelly</option>
+                            <option value="industrial_shields">Industrial Shields</option>
+                            <option value="arduino_opta">Arduino Opta</option>
+                            <option value="olimex">Olimex</option>
+                            <option value="brainboxes">Brainboxes</option>
+                        </select>
 
-            <label style="margin-top:10px; display:block;">Adresse IP ou ID Cloud</label>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="welcome-portal-ip" class="input-text" placeholder="Ex: 192.168.1.50" style="flex:2;">
-                <button class="btn-outline" onclick="testWelcomeConnection(this)" style="flex:1; font-size:0.7rem; padding:0 5px;">TESTER</button>
-            </div>
-            
-            <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="finishWelcome()">
-                ACTIVER MON SYSTÈME
-            </button>
-        </div>
-    </div>
-</div>
+                        <label style="margin-top:10px; display:block;">Adresse IP ou ID Cloud</label>
+                        <input type="text" id="welcome-portal-ip" class="input-text" placeholder="Ex: 192.168.1.50">
+                        
+                        <button class="btn-primary" style="width:100%; margin-top:30px;" onclick="finishWelcome()">
+                            ACTIVER MON SYSTÈME
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <section id="page-a" class="page active">
                 <header class="page-header"><h2>Tableau de Bord</h2></header>
                 <div id="stats-container" class="grid-stats"></div>
@@ -102,8 +99,8 @@
                     <button class="btn-outline" onclick="showPage('page-b')">❮ Retour</button>
                     <h2 id="user-form-title">Édition Profil</h2>
                 </header>
-                <div id="user-form-content">
-                </div>
+                <div id="user-form-content" class="card">
+                    </div>
             </section>
 
             <section id="page-c" class="page">
@@ -112,393 +109,110 @@
                     <button id="btn-add-portal" class="btn-primary" onclick="togglePortalForm(true)">+ Ajouter un Accès</button>
                 </header>
 
-               <div id="portal-form-container" class="card" style="display:none; border-top: 4px solid var(--accent);">
-    <h3>Nouvel Accès</h3>
-    
-    <div style="margin-bottom:15px;">
-        <label>Nom du Lieu / Site</label>
-        <input type="text" id="welcome-portal-location" class="input-text" placeholder="Ex: Dépôt Principal">
-        
-        <label>Nom de l'accès</label>
-        <input type="text" id="new-portal-name" class="input-text" placeholder="Ex: Portail Entrée">
-    </div>
+                <div id="portal-form-container" class="card" style="display:none; border-top: 4px solid var(--accent);">
+                    <h3>Nouvel Accès</h3>
+                    <label>Lieu / Site</label>
+                    <input type="text" id="new-portal-location" class="input-text" placeholder="Ex: Dépôt Nord">
+                    
+                    <label>Nom de l'accès</label>
+                    <input type="text" id="new-portal-name" class="input-text" placeholder="Ex: Portail Entrée">
 
-    <div style="margin-bottom:15px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
-        <label style="font-weight: bold; color: var(--primary);">⚙️ Paramètres de Connexion</label>
-        
-        <label style="margin-top:10px; display:block;">Marque du contrôleur</label>
-        <select id="new-portal-brand" class="input-text" style="width:100%; margin-bottom:10px;">
-            <option value="Kincony">Kincony</option>
-            <option value="Norvi">Norvi</option>
-            <option value="Shelly">Shelly</option>
-            <option value="Industrial Shields">Industrial Shields</option>
-            <option value="Arduino Opta">Arduino Opta</option>
-            <option value="Olimex">Olimex</option>
-            <option value="Brainboxes">Brainboxes</option>
-        </select>
+                    <label>Marque du contrôleur</label>
+                    <select id="new-portal-brand" class="input-text">
+                        <option value="Kincony">Kincony</option>
+                        <option value="Norvi">Norvi</option>
+                        <option value="Shelly">Shelly</option>
+                        <option value="Industrial Shields">Industrial Shields</option>
+                    </select>
 
-     <label>Mode de connexion</label>
-<select id="new-portal-connection-type" class="input-text" onchange="toggleConnType()">
-    <option value="local">Réseau Local (IP)</option>
-    <option value="cloud">4G LTE (Cloud/MQTT)</option>
-</select>
+                    <label>Mode de connexion</label>
+                    <select id="new-portal-connection-type" class="input-text" onchange="toggleConnType()">
+                        <option value="local">Réseau Local (IP)</option>
+                        <option value="cloud">4G LTE (Cloud/MQTT)</option>
+                    </select>
 
-<div id="group-local-ip">
-    <label>Adresse IP du boîtier</label>
-    <input type="text" id="new-portal-ip" class="input-text" placeholder="Ex: 192.168.1.100">
-</div>
+                    <div id="group-local-ip">
+                        <label>Adresse IP</label>
+                        <input type="text" id="new-portal-ip" class="input-text" placeholder="192.168.1.100">
+                    </div>
 
-<div id="group-cloud-imei" style="display:none;">
-    <label>Numéro IMEI / ID Cloud</label>
-    <input type="text" id="new-portal-cloudid" class="input-text" placeholder="Ex: 8624xxxxxxxxxxx">
-</div>
-        <label style="margin-top:10px; display:block;">Numéro du relais (Sortie)</label>
-        <input type="number" id="new-portal-relay" class="input-text" value="1" min="1" max="32">
-    </div>
+                    <div id="group-cloud-imei" style="display:none;">
+                        <label>Numéro IMEI / ID Cloud</label>
+                        <input type="text" id="new-portal-cloudid" class="input-text" placeholder="8624xxxxxxxxxxx">
+                    </div>
 
-    <div style="margin-bottom:15px; background: #f0f9ff; padding: 10px; border-radius: 8px;">
-        <label style="color:var(--accent); font-weight: bold;">📍 Localisation GPS</label>
-        <div style="display:flex; gap:10px; margin-top:5px;">
-            <input type="text" id="new-portal-coords" class="input-text" placeholder="Position non définie" readonly style="flex:1; font-size:0.8rem;">
-            <button type="button" class="btn-outline" onclick="getCurrentLocation()" style="padding: 5px 10px;">📍 Capturer</button>
-        </div>
-    </div>
+                    <label>Relais de sortie</label>
+                    <input type="number" id="new-portal-relay" class="input-text" value="1" min="1" max="32">
 
-    <div style="display:flex; gap:10px;">
-        <button class="btn-primary" style="flex:1;" onclick="submitPortal()">ENREGISTRER</button>
-        <button class="btn-outline" style="flex:1;" onclick="togglePortalForm(false)">ANNULER</button>
-    </div>
-</div>
-                <div id="portal-identity-edit" class="card" style="display:none; margin-top:20px; border-top: 4px solid var(--accent);">
-    </div>
-<div id="portal-fiche-overlay" style="display:none; margin-top: 20px;">
-    <div id="portal-fiche-content" class="card" style="border-top: 5px solid var(--accent);">
-        </div>
-</div>
+                    <button class="btn-primary" style="width:100%; margin-top:20px;" onclick="submitPortal()">ENREGISTRER</button>
+                    <button class="btn-outline" style="width:100%; margin-top:10px;" onclick="togglePortalForm(false)">ANNULER</button>
+                </div>
+
                 <div id="portals-config-list"></div>
             </section>
-            
-            <section id="page-d" class="page">
-                 <header class="page-header"><h2>Historique</h2></header>
-                 <div class="card"><p style="color:var(--text-sub);">L'historique des événements s'affichera ici.</p></div>
+
+            <section id="page-alerts" class="page">
+                <header class="page-header">
+                    <h2>⚠️ Alertes & Sécurité</h2>
+                    <button class="btn-primary" onclick="toggleAlertSetup()">+ Règle</button>
+                </header>
+                <div id="alert-setup-form" class="card" style="display:none;">
+                    </div>
+                <div id="active-rules-list"></div>
+                <div id="display-alerts-logs"></div>
             </section>
 
-            
-    <section id="page-alerts" class="page">
-    <div class="header-actions">
-        <h2>⚠️ Gestion des Alertes</h2>
-        <button class="btn-primary" id="btn-toggle-setup" onclick="toggleAlertSetup()">+ Nouvelle Règle</button>
-    </div>
-
-    <div id="alert-setup-form" class="card" style="display:none; border: 2px solid var(--primary); margin-bottom: 20px;">
-        <h3>⚙️ Configurer une alerte</h3>
-        <input type="hidden" id="edit-rule-id" value="">
-        
-        <label><b>1. Appliquer à :</b> (Sélection multiple)</label>
-        <div id="setup-portal-checkboxes" style="display:flex; gap:10px; flex-wrap:wrap; margin:10px 0; padding:10px; background:#f9f9f9; border-radius:8px;">
-            </div>
-
-        <label><b>2. Jours d'activation :</b></label>
-        <div id="setup-day-checkboxes" style="display:flex; gap:5px; flex-wrap:wrap; margin:10px 0; padding:10px; background:#f9f9f9; border-radius:8px;">
-            <label><input type="checkbox" class="setup-day" value="1" checked> L</label>
-            <label><input type="checkbox" class="setup-day" value="2" checked> M</label>
-            <label><input type="checkbox" class="setup-day" value="3" checked> M</label>
-            <label><input type="checkbox" class="setup-day" value="4" checked> J</label>
-            <label><input type="checkbox" class="setup-day" value="5" checked> V</label>
-            <label><input type="checkbox" class="setup-day" value="6"> S</label>
-            <label><input type="checkbox" class="setup-day" value="0"> D</label>
-        </div>
-
-        <label><b>3. Type d'alerte :</b></label>
-        <select id="setup-alert-type" style="width:100%; padding:10px; margin:10px 0;" onchange="updateSetupFields()">
-            <option value="horaire">🕒 Ouverture Hors-Horaires</option>
-            <option value="stay_open">🚪 Portail resté ouvert</option>
-            <option value="intrusion">⚠️ Tentatives d'intrusion (2x+)</option>
-            <option value="hardware">❌ Défaut Matériel (Boîtier)</option>
-        </select>
-
-        <div id="setup-params">
-            <div id="param-horaire">
-                <label>Plage horaire interdite :</label>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="time" id="time-start" value="22:00"> à <input type="time" id="time-end" value="06:00">
-                </div>
-            </div>
-            <div id="param-stay-open" style="display:none;">
-                <label>Alerte si ouvert plus de :</label>
-                <select id="time-duration" style="width:100%; padding:10px;">
-                    <option value="5">5 minutes</option>
-                    <option value="10">10 minutes</option>
-                    <option value="15">15 minutes</option>
-                </select>
-            </div>
-        </div>
-
-        <button class="btn-primary" style="width:100%; margin-top:15px;" onclick="saveAlertRule()">Enregistrer la règle</button>
-    </div>
-
-    <div class="header-actions"><h3>📋 Mes Règles Actives</h3></div>
-    <div id="active-rules-list">
-        <p style="color:#999; text-align:center;">Aucune règle enregistrée.</p>
-    </div>
-
-    <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
-
-    <div class="header-actions"><h3>📜 Journal des Incidents</h3></div>
-    <div id="display-alerts-logs">
-        <div id="display-horaires"></div>
-        <div id="display-stay-open"></div>
-        <div id="display-intrusion"></div>
-        <div id="display-hardware"></div>
-        <p id="no-incident-msg" style="color:#999; text-align:center;">Tout est normal.</p>
-    </div>
-</section>
-<section id="page-keys" class="page">
-    <div class="header-actions">
-        <h2>🔑 Clés d'accès</h2>
-    </div>
-
-    <div class="card" style="margin-bottom: 20px;">
-        <h3>➕ Créer un nouvel accès</h3>
-        <div class="flex-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <select id="key-user-select"><option value="">Choisir un Profil...</option></select>
-            <select id="key-portal-select"><option value="">Attribuer à un Accès...</option></select>
-            
-            <select id="key-type-select" onchange="toggleKeyInput()">
-                <option value="code">Code Clavier</option>
-                <option value="badge">Badge RFID</option>
-                <option value="remote">Télécommande</option>
-            </select>
-            <input type="text" id="key-value-input" placeholder="Entrez le code ou l'ID">
-        </div>
-        <button class="btn-primary" onclick="createNewKey()" style="width:100%; margin-top:10px;">💾 GÉNÉRER LA CLÉ</button>
-    </div>
-
-    <div class="card" style="background: var(--bg-secondary); margin-bottom: 20px;">
-        <h3>🔍 Filtres d'affichage</h3>
-        <div class="flex-row" style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-            <button class="btn-outline btn-small" onclick="filterKeys('all')">Tout voir</button>
-            <button class="btn-outline btn-small" onclick="filterKeys('code')">Codes</button>
-            <button class="btn-outline btn-small" onclick="filterKeys('badge')">Badges</button>
-            <button class="btn-outline btn-small" onclick="filterKeys('remote')">Émetteurs</button>
-        </div>
-        <div class="flex-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-            <input type="text" id="filter-key-user" placeholder="Filtrer par Profil..." oninput="renderKeysCentral()">
-            <input type="text" id="filter-key-portal" placeholder="Filtrer par Accès..." oninput="renderKeysCentral()">
-        </div>
-    </div>
-
-    <div id="central-keys-list">
-        </div>
-</div>
-</section>
-            <section id="page-f" class="page">
-                <header class="page-header">
-                    <h2>Confort & Fonctions</h2>
-                    <button class="btn-primary" onclick="saveComfortSettings()">💾 Enregistrer</button>
-                </header>
-
+            <section id="page-keys" class="page">
+                <header class="page-header"><h2>🔑 Clés d'accès</h2></header>
                 <div class="card">
-                    <h3>🏠 Automatismes</h3>
-                    <div class="flex-row" style="margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                        <div>
-                            <strong>Éclairage de courtoisie</strong><br>
-                            <small style="color:var(--text-sub);">Allume la lumière pendant 2min à l'ouverture</small>
-                        </div>
-                        <input type="checkbox" id="set-auto-light" class="switch">
+                    <h3>Générer un accès</h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <select id="key-user-select" class="input-text"><option>Profil...</option></select>
+                        <select id="key-portal-select" class="input-text"><option>Accès...</option></select>
                     </div>
-                    <div class="flex-row">
-                        <div>
-                            <strong>Mode Sombre Automatique</strong><br>
-                            <small style="color:var(--text-sub);">Selon les horaires du soleil (19h - 07h)</small>
-                        </div>
-                        <input type="checkbox" id="set-dark-mode" class="switch">
-                    </div>
+                    <input type="text" id="key-value-input" class="input-text" placeholder="Code PIN ou ID Badge">
+                    <button class="btn-primary" style="width:100%;" onclick="createNewKey()">SAUVEGARDER</button>
                 </div>
-
-                <div class="card">
-                    <h3>🔑 Matériel & Lecteurs</h3>
-                    <p style="color:var(--text-sub); font-size:0.85rem; margin-bottom:15px;">Activez les modules optionnels connectés à votre automate.</p>
-                    
-                    <div class="flex-row" style="margin-bottom:12px;">
-                        <label>Gestion Clavier RS485/Wiegand</label>
-                        <input type="checkbox" id="set-module-keypad" class="switch">
-                    </div>
-                    <div class="flex-row" style="margin-bottom:12px;">
-                        <label>Lecteur de Badges RFID</label>
-                        <input type="checkbox" id="set-module-rfid" class="switch">
-                    </div>
-                    <div class="flex-row">
-                        <label>Récepteur Télécommandes</label>
-                        <input type="checkbox" id="set-module-remote" class="switch">
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3>📍 Ouverture par Proximité (GPS)</h3>
-                    <div class="flex-row" style="margin-bottom:15px;">
-                        <div>
-                            <strong>Activer la détection GPS</strong><br>
-                            <small style="color:var(--text-sub);">Notification automatique à l'approche</small>
-                        </div>
-                        <input type="checkbox" id="set-gps-active" class="switch" onchange="toggleGPS()">
-                    </div>
-                    
-                    <div id="gps-options" style="display:none;">
-                        <label>Distance de détection</label>
-                        <select id="set-gps-distance" class="input-text">
-                            <option value="200">200 mètres</option>
-                            <option value="400">400 mètres</option>
-                            <option value="600" selected>600 mètres</option>
-                            <option value="800">800 mètres</option>
-                            <option value="1000">1000 mètres</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="gps-confirm-modal" class="modal-overlay" style="display:none;">
-                    <div class="modal-content">
-                        <h3>Arrivée imminente</h3>
-                        <p>Souhaitez-vous ouvrir <span id="gps-target-name">...</span> ?</p>
-                        
-                        <div class="slide-container">
-                            <input type="range" min="0" max="100" value="0" class="slider-confirm" id="gps-slider">
-                            <div class="slide-text">Glissez pour ouvrir >>></div>
-                        </div>
-                        
-                        <button class="btn-outline" style="width:100%; margin-top:15px;" onclick="closeGPSModal()">ANNULER</button>
-                        <div id="gps-timer-bar"></div>
-                    </div>
-                </div>
+                <div id="central-keys-list"></div>
             </section>
 
             <section id="page-g" class="page">
                 <header class="page-header">
-                    <h2>Personnalisation Client</h2>
+                    <h2>Personnalisation</h2>
                     <button class="btn-primary" onclick="saveBrandingSettings()">💾 Appliquer</button>
                 </header>
-
                 <div class="card">
-                    <h3>Identité Visuelle</h3>
-                    <p style="color:var(--text-sub); font-size:0.85rem; margin-bottom:15px;">Personnalisez l'interface pour votre client final.</p>
-                    
-                    <div style="margin-bottom:20px;">
-                        <label>Nom de l'installation (Titre)</label>
-                        <input type="text" id="brand-name" class="input-text" placeholder="Ex: Résidence les Pins">
-                        <small style="color:var(--text-sub);">S'affichera sur la Sidebar et le Splash Screen.</small>
-                    </div>
-
-                    <div style="margin-bottom:20px;">
-                        <label>Couleur d'accentuation (Thème)</label>
-                        <input type="color" id="brand-color" value="#2563eb" style="display:block; width:100%; height:40px; border:none; border-radius:8px; cursor:pointer;">
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3>Support & Contact</h3>
-                    <div style="margin-bottom:15px;">
-                        <label>Numéro d'urgence / Maintenance</label>
-                        <input type="text" id="brand-support" class="input-text" placeholder="Ex: 04 00 00 00 00">
-                    </div>
-                </div>
-            </section>
-
-            <section id="page-h" class="page">
-                <header class="page-header">
-                    <h2>Corbeille</h2>
-                    <button class="btn-outline" style="color:var(--red);" onclick="emptyTrash()">Vider tout</button>
-                </header>
-                <div id="trash-container">
+                    <label>Nom de l'installation</label>
+                    <input type="text" id="brand-name" class="input-text" placeholder="Ex: Résidence les Pins">
+                    <label>Couleur du Thème</label>
+                    <input type="color" id="brand-color" value="#2563eb" style="width:100%; height:40px; border-radius:8px;">
                 </div>
             </section>
 
             <section id="page-i" class="page">
-                <header class="page-header"><h2>Système & Matériel</h2></header>
-
+                <header class="page-header"><h2>Système</h2></header>
                 <div class="card">
-                    <h3>Connexion Automate</h3>
-                    <p style="color:var(--text-sub); font-size:0.85rem; margin-bottom:15px;">Sélectionnez la marque de votre contrôleur et son adresse IP.</p>
-                    
-                    <label>Marque du matériel</label>
-                    <select id="hardware-brand" class="input-text" style="margin-bottom:15px;">
-                        <option value="kincony">Kincony</option>
-                        <option value="norvi">Norvi</option>
-                        <option value="shelly">Shelly</option>
-                        <option value="industrial_shields">Industrial Shields</option>
-                        <option value="arduino_opta">Arduino Opta</option>
-                        <option value="olimex">Olimex</option>
-                        <option value="brainboxes">Brainboxes</option>
-                    </select>
-
-                    <label>Adresse IP / URL</label>
-                    <input type="text" id="hardware-ip" class="input-text" placeholder="ex: 192.168.1.100" style="margin-bottom:15px;">
-
-                    <div style="display:flex; gap:10px;">
-                        <button class="btn-primary" onclick="saveHardwareConfig()">💾 Enregistrer</button>
-                        <button class="btn-outline" onclick="testConnection()">⚡ Tester la connexion</button>
-                    </div>
-                    <div id="test-result" style="margin-top:10px; font-weight:600; font-size:0.9rem;"></div>
+                    <h3>Maintenance</h3>
+                    <button class="btn-outline" onclick="rebootHardware()">🔄 Redémarrer l'automate</button>
+                    <div id="reboot-status"></div>
                 </div>
-
                 <div class="card">
-                    <h3>Maintenance des données</h3>
-                    <div style="display:flex; gap:10px; margin-top:10px;">
-                        <button class="btn-outline" onclick="exportData()">📤 Exporter Backup</button>
-                        <button class="btn-outline" onclick="triggerImport()">📥 Importer Backup</button>
-                        <input type="file" id="import-file" style="display:none;" onchange="importData(event)">
-                    </div>
-                </div>
-
-                <div class="card" style="border-top: 4px solid var(--accent); margin-top:40px;">
-                    <h3>⚙️ Maintenance Matérielle</h3>
-                    <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom: 15px;">
-                        Actionnez le redémarrage à distance de votre contrôleur en cas de latence.
-                    </p>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <button class="btn-outline" style="color:var(--accent); border-color:var(--accent);" onclick="rebootHardware()">
-                            🔄 REDÉMARRER L'AUTOMATE
-                        </button>
-                        <span id="reboot-status" style="font-size: 0.85rem; font-weight: 600;"></span>
-                    </div>
+                    <h3>Backup</h3>
+                    <button class="btn-outline" onclick="exportData()">📤 Exporter</button>
+                    <button class="btn-outline" onclick="document.getElementById('import-file').click()">📥 Importer</button>
+                    <input type="file" id="import-file" style="display:none;" onchange="importData(event)">
                 </div>
             </section>
 
-            <section id="page-welcome" class="page">
-                <div style="max-width: 500px; margin: 60px auto; text-align: center; padding: 20px;">
-                    <div style="font-size: 4rem; margin-bottom: 20px;">👋</div>
-                    <h1 style="font-size: 2rem; margin-bottom: 10px;">Bienvenue sur <span style="color:var(--accent)">THERA CONNECT</span></h1>
-                    <p style="color: var(--text-sub); line-height: 1.6; margin-bottom: 30px;">
-                        Votre système de gestion d'accès intelligent est prêt. 
-                        Commençons par configurer votre premier accès pour activer le tableau de bord.
-                    </p>
-                    
-                    <div class="card" style="text-align: left;">
-                        <label>Nom de votre premier accès</label>
-                        <input type="text" id="welcome-portal-name" class="input-text" placeholder="Ex: Portail Principal">
-                        <label>Numéro du relais (Kincony/Shelly)</label>
-                        <input type="number" id="welcome-portal-relay" class="input-text" placeholder="1">
-                        <button class="btn-primary" style="width: 100%; padding: 15px; margin-top: 10px;" onclick="finishWelcome()">DÉMARRER LA CONFIGURATION</button>
-                    </div>
-                    
-                    <p style="font-size: 0.8rem; color: var(--text-sub); margin-top: 20px;">
-                        Étape 1 sur 1 • THERA CONNECT V300
-                    </p>
+            <section id="page-user-simple" class="page">
+                <div class="user-view-header">
+                    <h2 id="user-welcome-name">Bonjour</h2>
+                    <p>Vos accès autorisés :</p>
                 </div>
+                <div id="user-access-buttons" class="user-cards-container"></div>
+                <button class="btn-outline" onclick="window.location.reload()" style="margin-top:20px;">🔒 Déconnexion</button>
             </section>
 
-<section id="page-user-simple" class="page">
-    <div class="user-view-header">
-        <h2 id="user-welcome-name">Bonjour</h2>
-        <p>Voici vos accès autorisés</p>
-    </div>
-    
-    <div id="user-access-buttons" class="user-cards-container">
-        </div>
-
-    <div class="user-view-footer">
-        <button class="btn-outline" onclick="window.location.reload()">🔒 Déconnexion / Retour</button>
-    </div>
-</section>
         </main>
     </div>
 
