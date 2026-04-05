@@ -473,27 +473,44 @@ async function fetchLogs() {
 }
 
 // 5. COMMANDE DE LANCEMENT ET INITIALISATION FINALE
-function launchTheraConnect() {
-    console.log("--- INITIALISATION THERA CONNECT V300 ---");
+// 1. DÉFINITION DE LA FONCTION DE LOG (POUR ÉVITER L'ERREUR)
+function addSystemLog(message, type = 'info') {
+    const now = new Date().toLocaleTimeString();
+    console.log(`[${now}] [${type.toUpperCase()}] ${message}`);
     
-    // 1. Connexion Supabase
-    syncDatabase();
-
-    // 2. Chargement du Branding
-    const savedConfig = JSON.parse(localStorage.getItem('thera_branding'));
-    if (savedConfig) applyBranding(savedConfig);
-
-    // 3. Activation du Géofencing si paramétré
-    if (localStorage.getItem('geofencing_enabled') === 'true') {
-        toggleGeofencing(true);
+    // Si tu as un conteneur de logs dans ton HTML (page-i)
+    const container = document.getElementById('test-result');
+    if (container) {
+        container.innerHTML = `<span style="color:var(--accent)">${now}</span> : ${message}`;
     }
-
-    // 4. Écoute temps réel Supabase (Logs)
-    const channel = theraDb.channel('db-changes')
-  .on('postgres_changes', { event: '*', schema: 'public' }, () => syncDatabase())
-  .subscribe();
-    addSystemLog("Système Thera Connect opérationnel.", "success");
 }
 
-// LANCEMENT DU SCRIPT
-launchTheraConnect();
+// 2. LE MOTEUR DE LANCEMENT (CORRIGÉ)
+async function launchTheraConnect() {
+    try {
+        addSystemLog("Initialisation du système...", "info");
+        
+        // Synchronisation initiale des données
+        await syncDatabase();
+        
+        addSystemLog("Données synchronisées avec Supabase", "success");
+
+        // Masquer le splash screen après 1.5s
+        setTimeout(() => {
+            const splash = document.getElementById('page-splash');
+            if (splash) splash.style.display = 'none';
+            
+            // Afficher la page d'accueil par défaut
+            showPage('page-a');
+        }, 1500);
+
+    } catch (err) {
+        addSystemLog("Erreur lors du lancement : " + err.message, "danger");
+        console.error(err);
+    }
+}
+
+// 3. DÉMARRAGE AUTOMATIQUE
+window.addEventListener('DOMContentLoaded', () => {
+    launchTheraConnect();
+});
