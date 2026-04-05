@@ -1,9 +1,18 @@
 
 // 1. CONFIGURATION ET ETAT GLOBAL
-const SUPABASE_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk';
-if (typeof supabase === 'undefined') {
-    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SB_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
+const SB_KEY = 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk';
+
+// Utilisation d'un nom unique pour éviter les conflits avec la bibliothèque window.supabase
+var supabaseClient; 
+
+function initSupabase() {
+    if (window.supabase && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
+        console.log("✅ Client Supabase initialisé avec succès.");
+    } else {
+        console.error("❌ La bibliothèque Supabase n'est pas chargée. Vérifiez votre index.html.");
+    }
 }
 // État global de l'application (Source de vérité unique)
 let appConfig = {
