@@ -1,4 +1,4 @@
--- 1. Table des Portails (Marques, IPs, Coordonnées GPS)
+ 1. Table des Portails (Marques, IPs, Coordonnées GPS)
 CREATE TABLE portals (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE portals (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. Table des Utilisateurs (Profils, Plannings, Codes)
+ 2. Table des Utilisateurs (Profils, Plannings, Codes)
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   firstname TEXT NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Table des Règles de Sécurité (Alertes)
+ 3. Table des Règles de Sécurité (Alertes)
 CREATE TABLE alert_rules (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   type TEXT NOT NULL, -- 'horaire' ou 'stay_open'
@@ -39,7 +39,7 @@ CREATE TABLE alert_rules (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Table des Logs (Historique & Sécurité)
+ 4. Table des Logs (Historique & Sécurité)
 CREATE TABLE logs (
   id BIGSERIAL PRIMARY KEY,
   portal_id UUID REFERENCES portals(id),
@@ -49,7 +49,7 @@ CREATE TABLE logs (
   timestamp TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Table des Paramètres (Branding & Wallpaper)
+ 5. Table des Paramètres (Branding & Wallpaper)
 CREATE TABLE settings (
   id TEXT PRIMARY KEY DEFAULT 'current_config',
   app_name TEXT DEFAULT 'Thera Connect',
