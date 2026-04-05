@@ -7,8 +7,8 @@
    ========================================================================== */
 
 // --- 1. CONFIGURATION ET ÉTAT GLOBAL ---
-const SUPABASE_URL = "https://votre-projet.supabase.co";
-const SUPABASE_KEY = "votre-cle-anon-supabase";
+const SUPABASE_URL = "https://dekxcxlremxaynpezgmr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk";
 // Initialisation unique pour éviter l'erreur "Identifier already declared"
 const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
