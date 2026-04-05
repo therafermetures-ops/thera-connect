@@ -4,20 +4,10 @@
    ========================================================== */
 
 // 1. CONFIGURATION ET ETAT GLOBAL
+// ✅ UTILISE CE FORMAT :
 const SB_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
 const SB_KEY = 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk';
-
-// Utilisation d'un nom unique pour éviter les conflits avec la bibliothèque window.supabase
-var supabaseClient; 
-
-function initSupabase() {
-    if (window.supabase && window.supabase.createClient) {
-        supabaseClient = window.supabase.createClient(SB_URL, SB_KEY);
-        console.log("✅ Client Supabase initialisé avec succès.");
-    } else {
-        console.error("❌ La bibliothèque Supabase n'est pas chargée. Vérifiez votre index.html.");
-    }
-}
+const theraDb = window.supabase.createClient(SB_URL, SB_KEY); // On l'appelle theraDb
 // État global de l'application (Source de vérité unique)
 let appConfig = {
     appName: "Thera Connect",
@@ -63,16 +53,21 @@ function handleSmartBack() {
 // 3. SYNCHRONISATION SUPABASE (MOTEUR PRINCIPAL)
 async function syncDatabase() {
     try {
+        if (!theraDb) {
+            console.error("Synchronisation impossible : client non initialisé.");
+            return;
+        }
+
         console.log("Sync en cours...");
-        const { data: portals } = await supabase.from('portals').select('*');
-        const { data: users } = await supabase.from('users').select('*');
-        const { data: rules } = await supabase.from('alert_rules').select('*');
+        // On utilise supabaseClient ici
+       const { data: portals } = await theraDb.from('portals').select('*');
+        const { data: users } = await theraDb.from('users').select('*');
+        const { data: rules } = await theraDb.from('alert_rules').select('*');
         
         if (portals) appConfig.portals = portals;
         if (users) appConfig.users = users;
         if (rules) appConfig.alertRules = rules;
 
-        // Mise à jour de l'interface
         if (typeof renderUserList === "function") renderUserList();
         if (typeof renderPortalDashboard === "function") renderPortalDashboard();
         
@@ -494,14 +489,9 @@ function launchTheraConnect() {
     }
 
     // 4. Écoute temps réel Supabase (Logs)
-    supabase
-        .channel('public:logs')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'logs' }, payload => {
-            addSystemLog(`Nouvel événement : ${payload.new.action}`, "info");
-            fetchLogs();
-        })
-        .subscribe();
-
+    const channel = theraDb.channel('db-changes')
+  .on('postgres_changes', { event: '*', schema: 'public' }, () => syncDatabase())
+  .subscribe();
     addSystemLog("Système Thera Connect opérationnel.", "success");
 }
 
