@@ -8,30 +8,43 @@ const SUPABASE_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// État global de l'application
+// État global de l'application (Source de vérité unique)
 let appConfig = {
     appName: "Thera Connect",
     portals: [],
-    currentUser: null,
-    history: [] // Pour handleSmartBack
+    users: [],
+    alertRules: [],
+    currentUser: null, // Sera rempli après login
+    history: ['home']  // Historique de navigation
 };
 
-// Fonction de navigation corrigée (Janvier 2026)
-function showPage(pageId) {
+// 2. SYSTÈME DE NAVIGATION (CORRIGÉ)
+function showPage(pageId, saveToHistory = true) {
     console.log("Navigation vers :", pageId);
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    
+    // Masquer toutes les pages
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(p => p.classList.remove('active'));
+    
+    // Afficher la page cible
     const targetPage = document.getElementById(pageId);
     if (targetPage) {
         targetPage.classList.add('active');
-        appConfig.history.push(pageId);
+        // Enregistrer dans l'historique si demandé
+        if (saveToHistory && appConfig.history[appConfig.history.length - 1] !== pageId) {
+            appConfig.history.push(pageId);
+        }
+    } else {
+        console.error(`Erreur : La page [${pageId}] n'existe pas dans le HTML.`);
     }
 }
 
 function handleSmartBack() {
-    if (pageHistory.length > 1) {
-        pageHistory.pop(); // Retire la page actuelle
-        const prevPage = pageHistory[pageHistory.length - 1];
-        showPage(prevPage, false);
+    // Correction : Utilisation de appConfig.history au lieu de pageHistory
+    if (appConfig.history.length > 1) {
+        appConfig.history.pop(); // Retire la page actuelle
+        const prevPage = appConfig.history[appConfig.history.length - 1];
+        showPage(prevPage, false); // On ne rajoute pas la page précédente à l'historique
     } else {
         showPage('home', false);
     }
@@ -39,92 +52,22 @@ function handleSmartBack() {
 
 // 3. SYNCHRONISATION SUPABASE (MOTEUR PRINCIPAL)
 async function syncDatabase() {
-    console.log("Sync en cours...");
-    const { data: portals } = await supabase.from('portals').select('*');
-    const { data: users } = await supabase.from('users').select('*');
-    const { data: rules } = await supabase.from('alert_rules').select('*');
-    
-    if (portals) appConfig.portals = portals;
-    if (users) appConfig.users = users;
-    if (rules) appConfig.alertRules = rules;
+    try {
+        console.log("Sync en cours...");
+        const { data: portals } = await supabase.from('portals').select('*');
+        const { data: users } = await supabase.from('users').select('*');
+        const { data: rules } = await supabase.from('alert_rules').select('*');
+        
+        if (portals) appConfig.portals = portals;
+        if (users) appConfig.users = users;
+        if (rules) appConfig.alertRules = rules;
 
-    renderUserList();
-    renderPortalDashboard();
-}
-
-// 4. GESTION DES UTILISATEURS ET PLANNINGS (LAPI MODULE INCLUS)
-async function saveUser(userData) {
-    // Vérification stricte des noms selon tes consignes
-    const { data, error } = await supabase
-        .from('users')
-        .upsert([{
-            id: userData.id || undefined,
-            firstname: userData.firstname,
-            lastname: userData.lastname,
-            role: userData.role,
-            access_level: userData.accessLevel,
-            expiry: userData.expiry,
-            schedule: userData.schedule // JSON contenant slots et days
-        }]);
-
-    if (!error) {
-        addSystemLog(`Utilisateur ${userData.firstname} enregistré`, "success");
-        await syncDatabase();
-    }
-}
-
-function isUserAllowedNow(user) {
-    const now = new Date();
-    // 1. Check expiration
-    if (user.expiry && now > new Date(user.expiry)) return false;
-
-    // 2. Check Planning (LAPI Option)
-    const sched = user.schedule;
-    if (!sched) return true; 
-
-    const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const today = days[now.getDay()];
-    if (!sched.days || !sched.days[today]) return false;
-
-    if (sched.slots && sched.slots.length > 0) {
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        return sched.slots.some(slot => {
-            const [sh, sm] = slot.start.split(':').map(Number);
-            const [eh, em] = slot.end.split(':').map(Number);
-            return currentMins >= (sh * 60 + sm) && currentMins <= (eh * 60 + em);
-        });
-    }
-    return true;
-}
-
-// 5. ALERTES ET SECURITE (TRADUCTION DES REGLES)
-function checkAlertRules(portalId, eventType) {
-    const rules = appConfig.alertRules.filter(r => r.portals.includes(portalId));
-    const now = new Date();
-    
-    rules.forEach(rule => {
-        if (rule.type === 'horaire') {
-            const currentMins = now.getHours() * 60 + now.getMinutes();
-            // Logique de détection hors plage
-            const [sh, sm] = rule.start.split(':').map(Number);
-            const [eh, em] = rule.end.split(':').map(Number);
-            if (currentMins < (sh * 60 + sm) || currentMins > (eh * 60 + em)) {
-                triggerSecurityAlert(portalId, "Accès hors horaires autorisés");
-            }
-        }
-    });
-}
-
-async function triggerSecurityAlert(portalId, message) {
-    await supabase.from('logs').insert([{
-        portal_id: portalId,
-        type: 'ALERTE',
-        details: message,
-        created_at: new Date()
-    }]);
-    // Notification locale
-    if (window.Notification && Notification.permission === "granted") {
-        new Notification("Thera Connect : Sécurité", { body: message });
+        // Mise à jour de l'interface
+        if (typeof renderUserList === "function") renderUserList();
+        if (typeof renderPortalDashboard === "function") renderPortalDashboard();
+        
+    } catch (err) {
+        console.error("Erreur critique de synchronisation :", err);
     }
 }
 /* ==========================================================
@@ -208,7 +151,7 @@ async function executeHardwareAction(portalId, relayIndex, actionType = 'pulse')
         await supabase.from('logs').insert([{
             portal_id: portalId,
             action: 'OPEN_SUCCESS',
-            operator: currentUser.firstname + " " + currentUser.lastname,
+            operator: appConfig.currentUser ? (appConfig.currentUser.firstname + " " + appConfig.currentUser.lastname) : "Système",
             timestamp: new Date().toISOString()
         }]);
 
@@ -383,7 +326,7 @@ function renderPortalDashboard() {
                 <span class="badge-${p.brand.toLowerCase()}">${p.brand}</span>
             </div>
             <div class="portal-controls">
-                <button class="main-trigger" onclick="checkAndOpen('${currentUser.id}', '${p.id}', 0)">
+                <button class="main-trigger" onclick="executeHardwareAction('${p.id}', 0)">
                     OUVRIR PRINCIPAL
                 </button>
                 ${p.hasSecondRelay ? `<button onclick="checkAndOpen('${currentUser.id}', '${p.id}', 1)">PIÉTON</button>` : ''}
