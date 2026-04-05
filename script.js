@@ -473,44 +473,41 @@ async function fetchLogs() {
 }
 
 // 5. COMMANDE DE LANCEMENT ET INITIALISATION FINALE
-// 1. DÉFINITION DE LA FONCTION DE LOG (POUR ÉVITER L'ERREUR)
+
 function addSystemLog(message, type = 'info') {
-    const now = new Date().toLocaleTimeString();
-    console.log(`[${now}] [${type.toUpperCase()}] ${message}`);
-    
-    // Si tu as un conteneur de logs dans ton HTML (page-i)
-    const container = document.getElementById('test-result');
-    if (container) {
-        container.innerHTML = `<span style="color:var(--accent)">${now}</span> : ${message}`;
+    console.log(`[SYSTEM] ${message}`);
+    const statusDisplay = document.getElementById('test-result');
+    if (statusDisplay) {
+        statusDisplay.style.color = type === 'danger' ? 'var(--red)' : 'var(--accent)';
+        statusDisplay.innerText = message;
     }
 }
 
-// 2. LE MOTEUR DE LANCEMENT (CORRIGÉ)
+// --- LANCEMENT FINAL DU MOTEUR ---
+
 async function launchTheraConnect() {
     try {
-        addSystemLog("Initialisation du système...", "info");
+        // LIGNE 495 : La fonction est maintenant bien définie juste au-dessus
+        addSystemLog("Démarrage du système Thera Connect...", "info");
         
-        // Synchronisation initiale des données
+        // 1. Synchro des données
         await syncDatabase();
         
-        addSystemLog("Données synchronisées avec Supabase", "success");
-
-        // Masquer le splash screen après 1.5s
+        // 2. Masquer le Splash Screen après chargement
         setTimeout(() => {
             const splash = document.getElementById('page-splash');
-            if (splash) splash.style.display = 'none';
-            
-            // Afficher la page d'accueil par défaut
-            showPage('page-a');
-        }, 1500);
+            if (splash) {
+                splash.style.opacity = '0';
+                setTimeout(() => splash.style.display = 'none', 500);
+            }
+            addSystemLog("Système prêt et synchronisé", "success");
+        }, 1000);
 
     } catch (err) {
-        addSystemLog("Erreur lors du lancement : " + err.message, "danger");
-        console.error(err);
+        console.error("Crash au démarrage :", err);
+        addSystemLog("Erreur critique au démarrage", "danger");
     }
 }
 
-// 3. DÉMARRAGE AUTOMATIQUE
-window.addEventListener('DOMContentLoaded', () => {
-    launchTheraConnect();
-});
+// Déclenchement automatique
+document.addEventListener('DOMContentLoaded', launchTheraConnect);
