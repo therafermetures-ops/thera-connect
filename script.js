@@ -1,3 +1,7 @@
+/* ==========================================================
+   PROJET : THERA CONNECT 2026 - VERSION STABLE 300 (MODULO A)
+   DATE : 05/04/2026
+   ========================================================== */
 
 // 1. CONFIGURATION ET ETAT GLOBAL
 const SB_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
