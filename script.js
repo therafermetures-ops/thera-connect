@@ -6,8 +6,9 @@
 // 1. CONFIGURATION ET ETAT GLOBAL
 const SUPABASE_URL = 'https://dekxcxlremxaynpezgmr.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
+if (typeof supabase === 'undefined') {
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
 // État global de l'application (Source de vérité unique)
 let appConfig = {
     appName: "Thera Connect",
