@@ -643,17 +643,15 @@ function toggleDateInput() {
     if (el) el.style.display = type === 'Visiteur' ? 'block' : 'none';
 }
 
-async function createNewProfil() {
-    // Lecture sécurisée de tous les champs
+function createNewProfil() {
     const name   = document.getElementById('new-prof-name')?.value.trim()  || '';
     const email  = document.getElementById('new-prof-email')?.value.trim() || '';
     const phone  = document.getElementById('new-prof-phone')?.value.trim() || null;
     const type   = document.getElementById('new-prof-type')?.value         || 'Régulier';
     const expiry = document.getElementById('new-prof-expiry')?.value       || null;
 
-    if (!name)  { showToast('Le nom est requis', 'error');  return; }
-    if (!email) { showToast('L\'email est requis', 'error'); return; }
-
+    if (!name)  { showToast('Le nom est requis', 'error');   return; }
+    if (!email) { showToast("L'email est requis", 'error');  return; }
     if (!supabaseClient) { showToast('Supabase non connecté', 'error'); return; }
 
     const newProfil = {
@@ -666,27 +664,38 @@ async function createNewProfil() {
         expires_at: type === 'Visiteur' ? expiry : null
     };
 
-    try {
-        const { data, error } = await supabaseClient
-            .from('profiles')
-            .insert([newProfil])
-            .select();
+    showToast('Création en cours...', 'info');
 
-        if (error) throw error;
+    supabaseClient
+        .from('profiles')
+        .insert([newProfil])
+        .select()
+        .then(function(result) {
+            console.log('DATA:', JSON.stringify(result.data));
+            console.log('ERROR:', JSON.stringify(result.error));
+            console.log('STATUS:', result.status);
 
-        if (data && data[0]) state.profils.push(data[0]);
+            if (result.error) {
+                showToast('Erreur : ' + result.error.message, 'error');
+                return;
+            }
 
-        closeModal('modal-add-profil');
-        renderProfilsList();
-        showToast(`✅ Profil créé · ${name}`);
+            if (result.data && result.data[0]) {
+                state.profils.push(result.data[0]);
+            }
 
-        // Proposer l'invitation
-        setTimeout(() => openInvitationModal(email, name, type, phone || ''), 500);
+            closeModal('modal-add-profil');
+            renderProfilsList();
+            showToast('✅ Profil créé : ' + name);
 
-    } catch (err) {
-        console.error('createNewProfil error:', err);
-        showToast('Erreur : ' + err.message, 'error');
-    }
+            setTimeout(function() {
+                openInvitationModal(email, name, type, phone || '');
+            }, 600);
+        })
+        .catch(function(err) {
+            console.log('CATCH ERROR:', err.message);
+            showToast('Erreur : ' + err.message, 'error');
+        });
 }
 
 function openProfilEdit(id) {
