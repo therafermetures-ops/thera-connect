@@ -1,709 +1,1110 @@
-/* ==========================================================================
-   THERA CONNECT - SOLUTION PROFESSIONNELLE V300 - STABLE V186
-   PROJETS : PORTAIL PRO / COFFRET QUAI / MODULE LAPI
-   --------------------------------------------------------------------------
-   ARCHITECTURE : VANILLA JS / SUPABASE REALTIME / LOCAL RECOVERY MODE
-   DÉVELOPPEMENT : 2026-04-06
-   ========================================================================== */
+/* ==================================================================
+   THERA CONNECT — script.js v3.0
+   Phase 3 : Rôles 4 niveaux · ESP32/Bluetooth · Planning Calendrier · Invitations
+================================================================== */
 
-// --- 1. CONFIGURATION ET ÉTAT GLOBAL ---
-const SUPABASE_URL = "https://dekxcxlremxaynpezgmr.supabase.co";
-const SUPABASE_KEY = "sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk";
-// Initialisation unique pour éviter l'erreur "Identifier already declared"
-const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+/* ==================================================================
+   CHAPITRE 0 : INITIALISATION & ÉTAT GLOBAL
+================================================================== */
 
-/**
- * appConfig : Singleton gérant l'état complet de l'application
- * (Consigne 2026-02-08 : Respect des noms 'profiles' et 'users')
- */
-let appConfig = {
-    version: "300",
-    build: "2026.04.06.01",
-    isOnline: navigator.onLine,
-    isBackupMode: false,
-    currentUser: null,
-    currentProfile: null,
-    portals: [], // Table 'portals'
-    users: [],   // Table 'profiles'
-    logs: [],
-    offlineQueue: [],
-    activeView: 'page-a',
-    branding: {
-        name: "THERA CONNECT",
-        color: "#007bff",
-        secondary: "#6c757d",
-        support: "support@thera-connect.fr"
-    },
-    modules: {
-        lapi: true,
-        quay: true,
-        geo: true,
-        emergencyBT: true
-    },
-    settings: {
-        gpsRadius: 50,
-        pulseDefault: 2,
-        autoRefresh: 30000 // 30s
-    }
+let supabaseClient = null;
+
+let state = {
+    acces:      [],
+    profils:    [],
+    historique: [],
+    trash:      [],
+    alertRules: [],
+    alertLogs:  []
 };
 
-// --- 2. MOTEUR DE NAVIGATION ET ROUTAGE (SMARTBACK) ---
-/**
- * showPage : Gère l'affichage des sections sans Home Assistant
- * (Consigne 2026-01-28 : handleSmartBack mémorisé)
- */
-function showPage(pageId) {
-    console.log(`[Router] Navigation : ${pageId}`);
-    
-    // Fermeture de sécurité des modales
-    closeAllModals();
+let currentTargetId        = null;
+let currentEditingId       = null;
+let currentEditingProfilId = null;
+let currentKeyFilter       = 'all';
 
-    const pages = document.querySelectorAll('.app-page');
-    pages.forEach(p => {
-        p.style.display = 'none';
-        p.classList.remove('active-view');
-    });
+// Bluetooth
+let bluetoothDevice  = null;
+let bluetoothCharac  = null;
+const BT_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
+const BT_CHAR_UUID    = '0000ffe1-0000-1000-8000-00805f9b34fb';
 
-    const target = document.getElementById(pageId);
-    if (target) {
-        target.style.display = 'block';
-        setTimeout(() => target.classList.add('active-view'), 10);
-        appConfig.activeView = pageId;
-        sessionStorage.setItem('last_view', pageId);
-        
-        // Routage de rendu spécifique
-        switch(pageId) {
-            case 'page-a': renderDashboard(); break;
-            case 'page-b': renderUsersList(); break;
-            case 'page-c': renderMaintenanceCenter(); break;
-            case 'page-d': renderLapiModule(); break;
-            case 'page-e': renderQuayManagement(); break;
-        }
-    } else {
-        addSystemLog(`Erreur : Page ${pageId} introuvable`, "error");
-    }
+// Planning
+let planningAccId    = null;
+let planningSlots    = {};
+let planningDragData = null;
+
+/* ==================================================================
+   CHAPITRE 1 : SUPABASE
+================================================================== */
+
+function initSupabase(url, key) {
+    if (!url || !key) return;
+    supabaseClient = supabase.createClient(url, key);
+    console.log('🔌 Supabase initialisé.');
 }
 
-function handleSmartBack() {
-    const last = sessionStorage.getItem('last_view');
-    // Si on est dans un sous-menu, retour à l'accueil
-    if (last && last !== 'page-a') {
-        showPage('page-a');
-    } else {
-        showToast("Accueil Thera Connect");
-    }
-}
+window.addEventListener('DOMContentLoaded', () => {
+    const url = localStorage.getItem('supabase_url');
+    const key = localStorage.getItem('supabase_key');
+    if (url && key) initSupabase(url, key);
+});
 
-// --- 3. SYNCHRONISATION SUPABASE (MODE HYBRIDE) ---
-
-async function bootSystem() {
-    addSystemLog("Démarrage du système V300...", "info");
-    injectGlobalStyles();
-    
-    if (!supabase) {
-        startBackupMode();
-        return;
-    }
-
+async function loadAllData() {
+    if (!supabaseClient) return;
     try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        const [{ data: accesData, error: e1 }, { data: profilsData, error: e2 }] = await Promise.all([
+            supabaseClient.from('access_points').select('*'),
+            supabaseClient.from('profiles').select('*')
+        ]);
+        if (e1) throw e1;
+        if (e2) throw e2;
 
-        if (session) {
-            appConfig.currentUser = session.user;
-            await fullDataSync();
-            initRealtimeSync();
-        } else {
-            showPage('page-login');
-        }
-    } catch (e) {
-        addSystemLog("Échec Cloud : Activation base ESP32", "warning");
-        startBackupMode();
-    }
-}
-
-async function fullDataSync() {
-    if (!navigator.onLine) return;
-    
-    addSystemLog("Synchronisation Cloud LTE en cours...", "info");
-    
-    // Récupération atomique pour éviter les bugs de chargement partiel
-    const [pFetch, uFetch, rFetch] = await Promise.all([
-        supabase.from('portals').select('*').order('name'),
-        supabase.from('profiles').select('*').order('firstname'),
-        supabase.from('security_rules').select('*')
-    ]);
-
-    if (pFetch.data) appConfig.portals = pFetch.data;
-    if (uFetch.data) appConfig.users = uFetch.data;
-    if (rFetch.data) appConfig.alertRules = rFetch.data;
-
-    // Mise à jour du cache de secours (ESP32 / LocalStorage)
-    updateLocalRecoveryBase();
-    renderDashboard();
-}
-
-function initRealtimeSync() {
-    // Surveillance temps réel des profils (Consigne 2026-02-08)
-    supabase.channel('db-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
-            addSystemLog("Mise à jour profils reçue", "success");
-            fullDataSync();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'portals' }, payload => {
-            addSystemLog("Config portails modifiée", "info");
-            fullDataSync();
-        })
-        .subscribe();
-}
-
-function updateLocalRecoveryBase() {
-    const snapshot = {
-        portals: appConfig.portals,
-        users: appConfig.users,
-        ts: Date.now(),
-        version: appConfig.version
-    };
-    localStorage.setItem('thera_recovery_db', JSON.stringify(snapshot));
-}
-
-function startBackupMode() {
-    appConfig.isBackupMode = true;
-    const db = localStorage.getItem('thera_recovery_db');
-    if (db) {
-        const data = JSON.parse(db);
-        appConfig.portals = data.portals || [];
-        appConfig.users = data.users || [];
-        addSystemLog("Base de secours chargée", "info");
-    }
-    showPage('page-a');
-}
-// --- 4. GESTION DES UTILISATEURS (TABLE PROFILES) ---
-
-/**
- * renderUsersList : Affiche la liste des profils synchronisés
- * (Consigne 2026-02-08 : Utiliser 'profiles' pour la base de données)
- */
-function renderUsersList() {
-    const container = document.getElementById('users-list-container');
-    if (!container) return;
-    
-    container.innerHTML = "";
-    
-    // Tri alphabétique par prénom
-    const sortedUsers = [...appConfig.users].sort((a, b) => a.firstname.localeCompare(b.firstname));
-
-    if (sortedUsers.length === 0) {
-        container.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-light);">Aucun utilisateur enregistré.</div>`;
-        return;
-    }
-
-    sortedUsers.forEach(user => {
-        const isExpired = user.expiry && new Date(user.expiry) < new Date();
-        const hasAccessNow = checkInstantAccess(user);
-        
-        const card = document.createElement('div');
-        card.className = "user-card-pro";
-        card.style = `background:white; border-radius:18px; padding:18px; margin-bottom:15px; box-shadow:var(--shadow-pro); border-left: 5px solid ${isExpired ? '#d63031' : (hasAccessNow ? '#00b894' : '#fdcb6e')};`;
-        
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div onclick="editUserProfile('${user.id}')" style="cursor:pointer; flex:1;">
-                    <div style="font-weight:700; font-size:1.05rem; color:var(--text-dark);">${user.firstname} ${user.lastname || ''}</div>
-                    <div style="font-size:0.8rem; color:var(--text-light); margin-top:4px;">
-                        <span>${user.role.toUpperCase()}</span> • 
-                        <span style="color:${isExpired ? 'red' : 'inherit'}">${isExpired ? 'EXPIRÉ' : (user.expiry ? 'Fin: '+formatShortDate(user.expiry) : 'Permanent')}</span>
-                    </div>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button onclick="shareAccessLink('${user.id}')" class="btn-circle-alt">🔗</button>
-                    <button onclick="deleteUserPrompt('${user.id}')" class="btn-circle-alt" style="color:var(--danger);">🗑️</button>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    });
-}
-
-/**
- * saveUserProfile : Crée ou met à jour un profil dans Supabase
- * (Consigne 2026-01-26 : Contrôler deux fois les erreurs et les noms)
- */
-async function saveUserProfile() {
-    addSystemLog("Vérification des données profil...", "info");
-    
-    const id = document.getElementById('u-form-id').value || `u-${Math.random().toString(36).substr(2, 9)}`;
-    const firstname = document.getElementById('u-form-fname').value.trim();
-    const lastname = document.getElementById('u-form-lname').value.trim();
-    const role = document.getElementById('u-form-role').value;
-    const expiry = document.getElementById('u-form-expiry').value;
-
-    // --- DOUBLE VÉRIFICATION (Vérif 1 : Champs obligatoires) ---
-    if (!firstname) {
-        showToast("Le prénom est obligatoire", "error");
-        return;
-    }
-
-    // --- DOUBLE VÉRIFICATION (Vérif 2 : Format des données) ---
-    const profileData = {
-        id: id,
-        firstname: firstname,
-        lastname: lastname,
-        role: role,
-        expiry: expiry || null,
-        access_schedule: compileScheduleFromUI(),
-        last_sync: new Date().toISOString(),
-        plate_number: document.getElementById('u-form-plate')?.value.toUpperCase() || null
-    };
-
-    addSystemLog(`Sauvegarde du profil : ${firstname} (ID: ${id})`, "info");
-
-    // Mise à jour locale immédiate (Fluidité UI)
-    const existingIdx = appConfig.users.findIndex(u => u.id === id);
-    if (existingIdx > -1) appConfig.users[existingIdx] = profileData;
-    else appConfig.users.push(profileData);
-
-    // Synchronisation Cloud
-    if (navigator.onLine && !appConfig.isBackupMode) {
-        try {
-            const { error } = await supabase.from('profiles').upsert(profileData);
-            if (error) throw error;
-            showToast("Utilisateur synchronisé avec succès");
-        } catch (err) {
-            addSystemLog("Erreur Cloud Profiles : " + err.message, "error");
-            queueOfflineAction('UPSERT_PROFILE', profileData);
-        }
-    } else {
-        queueOfflineAction('UPSERT_PROFILE', profileData);
-    }
-
-    updateLocalRecoveryBase();
-    renderUsersList();
-    closeModal('user-modal');
-}
-
-// --- 5. MOTEUR DE DÉCISION D'ACCÈS (PLANNINGS) ---
-
-/**
- * checkInstantAccess : Calcule si l'accès est autorisé au moment T
- */
-function checkInstantAccess(user) {
-    if (!user) return false;
-    
-    // Les administrateurs ont un accès total
-    if (user.role === 'admin') return true;
-
-    const now = new Date();
-    
-    // 1. Vérification de la date de fin de validité
-    if (user.expiry && now > new Date(user.expiry)) {
-        return false;
-    }
-
-    // 2. Vérification du planning hebdomadaire
-    const schedule = user.access_schedule;
-    if (!schedule) return true; // Si pas de planning défini, accès libre par défaut
-
-    const daysMap = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-    const currentDay = daysMap[now.getDay()];
-    
-    if (schedule.days && !schedule.days[currentDay]) {
-        return false;
-    }
-
-    // 3. Vérification des plages horaires (hh:mm)
-    if (schedule.slots && schedule.slots.length > 0) {
-        const currentMinutes = (now.getHours() * 60) + now.getMinutes();
-        
-        const inSlot = schedule.slots.some(slot => {
-            const startMin = timeToMinutes(slot.start);
-            const endMin = timeToMinutes(slot.end);
-            return currentMinutes >= startMin && currentMinutes <= endMin;
-        });
-        
-        if (!inSlot) return false;
-    }
-
-    return true;
-}
-
-/**
- * timeToMinutes : Convertit "HH:MM" en minutes totales
- */
-function timeToMinutes(timeStr) {
-    if (!timeStr) return 0;
-    const [h, m] = timeStr.split(':').map(Number);
-    return (h * 60) + m;
-}
-
-/**
- * queueOfflineAction : Stocke les actions en attente de réseau (ESP32)
- */
-function queueOfflineAction(type, data) {
-    appConfig.offlineQueue.push({
-        id: Date.now(),
-        type: type,
-        data: data,
-        ts: new Date().toISOString()
-    });
-    localStorage.setItem('thera_offline_queue', JSON.stringify(appConfig.offlineQueue));
-    addSystemLog(`Action mise en attente (Hors-ligne) : ${type}`, "warning");
-}
-
-function formatShortDate(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-}
-
-// --- FIN BLOC 2 ---
-/* ==========================================================================
-   SECTION 6 : MOTEUR DE COMMANDE PHYSIQUE (MULTI-HARDWARE)
-   (Consigne 2026-01-24 : Masquer totalement Home Assistant)
-   ========================================================================== */
-
-/**
- * sendHardwareCommand : Liaison directe avec les automates IP/Cloud
- */
-async function sendHardwareCommand(relayIndex, portalId = null) {
-    const portal = portalId ? appConfig.portals.find(p => p.id === portalId) : null;
-    
-    // Récupération des paramètres (Consigne 2026-02-08 : Noms fixes)
-    const brand = portal ? portal.brand : (localStorage.getItem('thera_hardware_brand') || 'Kincony');
-    const ip = portal ? portal.ip : localStorage.getItem('thera_hardware_ip');
-    const connType = portal ? portal.connectionType : 'local';
-    const pulseTime = portal ? portal.pulse_duration || 2 : 2;
-
-    if (connType === 'local' && !ip) {
-        addSystemLog(`Erreur : IP non configurée pour ${portal?.name || 'Automate'}`, "error");
-        return;
-    }
-
-    let actionUrl = "";
-    const bName = brand.toLowerCase();
-
-    // GÉNÉRATION DU PROTOCOLE SELON LE CONSTRUCTEUR (Consigne 2026-01-24)
-    if (connType === 'local') {
-        if (bName.includes('shelly')) {
-            actionUrl = `http://${ip}/relay/${relayIndex}?turn=on&timer=${pulseTime}`;
-        } else if (bName.includes('kincony')) {
-            actionUrl = `http://${ip}/control/relay?index=${relayIndex}&action=pulse&time=${pulseTime}`;
-        } else if (bName.includes('norvi') || bName.includes('industrial')) {
-            actionUrl = `http://${ip}/api/relay/${relayIndex}/pulse/${pulseTime}`;
-        } else if (bName.includes('arduino') || bName.includes('opta')) {
-            actionUrl = `http://${ip}/command?relay=${relayIndex}&pulse=${pulseTime}`;
-        } else if (bName.includes('brainboxes')) {
-            actionUrl = `http://${ip}/io/relay/${relayIndex}/pulse?ms=${pulseTime * 1000}`;
-        } else {
-            // Protocole HTTP générique pour autres marques (Olimex, etc.)
-            actionUrl = `http://${ip}/set_relay?id=${relayIndex}&state=1&duration=${pulseTime}`;
-        }
-    }
-
-    try {
-        addSystemLog(`Liaison ${brand} (${portal?.name || 'Général'})...`, "info");
-        
-        if (connType === 'local') {
-            // Mode Local : Timeout de 4s pour éviter de bloquer l'UI
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000);
-            
-            await fetch(actionUrl, { mode: 'no-cors', signal: controller.signal });
-            clearTimeout(timeoutId);
-        } else {
-            // Mode Cloud : Appel via Supabase Edge Function (Relais LTE)
-            if (supabase) {
-                const { data, error } = await supabase.functions.invoke('relay-control', {
-                    body: { portalId, relay: relayIndex, action: 'pulse', duration: pulseTime }
-                });
-                if (error) throw error;
-            }
-        }
-
-        addSystemLog(`Succès : ${portal?.name || 'Automate'} actionné`, "success");
-        recordAccessAttempt(portalId, "SUCCESS");
-        showToast("Ouverture confirmée");
-        
-        if (navigator.vibrate) navigator.vibrate(100);
-
+        state.acces   = (accesData   || []).filter(a => !a.is_deleted);
+        state.profils = (profilsData || []).filter(p => !p.is_deleted);
+        state.trash   = [
+            ...(accesData   || []).filter(a => a.is_deleted).map(a => ({ type: 'acces',  data: a, date: new Date() })),
+            ...(profilsData || []).filter(p => p.is_deleted).map(p => ({ type: 'profil', data: p, date: new Date() }))
+        ];
+        const { data: rulesData } = await supabaseClient.from('alert_rules').select('*').catch(() => ({ data: [] }));
+        if (rulesData) state.alertRules = rulesData;
+        console.log('✅ Données chargées:', state.acces.length, 'accès,', state.profils.length, 'profils');
     } catch (err) {
-        addSystemLog(`Échec liaison : ${brand} (${ip || 'Cloud'})`, "error");
-        recordAccessAttempt(portalId, "FAILED");
-        showToast("Erreur de connexion automate", "error");
+        console.error('Erreur loadAllData:', err.message);
+        showToast('Erreur chargement : ' + err.message, 'error');
     }
 }
 
-/**
- * recordAccessAttempt : Enregistre l'activité (Sync Cloud ou ESP32 Queue)
- */
-async function recordAccessAttempt(portalId, status) {
-    const logEntry = {
-        portal_id: portalId,
-        user_id: appConfig.currentUser?.id || 'anonymous_local',
-        user_name: appConfig.currentUser?.email || 'User Local',
-        status: status,
-        timestamp: new Date().toISOString()
-    };
+/* ==================================================================
+   CHAPITRE 2 : PERMISSIONS & RÔLES (4 niveaux)
+================================================================== */
 
-    if (navigator.onLine && !appConfig.isBackupMode && supabase) {
-        await supabase.from('access_logs').insert([logEntry]);
-    } else {
-        // Sauvegarde dans la base de secours ESP32 (Consigne 2026-02-08)
-        const queue = JSON.parse(localStorage.getItem('thera_offline_logs') || "[]");
-        queue.push(logEntry);
-        localStorage.setItem('thera_offline_logs', JSON.stringify(queue));
-    }
-}
+function applyPermissions(userRole, expiryDate = null) {
+    const navButtons  = document.querySelectorAll('.nav-btn');
+    const contentArea = document.querySelector('.content-area');
 
-/* ==========================================================================
-   SECTION 7 : CENTRE DE MAINTENANCE & DIAGNOSTIC
-   ========================================================================== */
+    navButtons.forEach(btn => btn.classList.remove('admin-only'));
+    document.querySelectorAll('.expiry-notice').forEach(el => el.remove());
 
-/**
- * runHardwareDiagnostic : Teste la présence réseau de tous les automates
- */
-async function runHardwareDiagnostic() {
-    addSystemLog("Lancement du diagnostic réseau...", "info");
-    const results = [];
+    const role = (userRole || '').toLowerCase().replace(/\s/g, '_');
 
-    for (const portal of appConfig.portals) {
-        if (portal.connectionType !== 'local') continue;
-        
-        const start = Date.now();
-        let status = "OFFLINE";
-        
-        try {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 3000);
-            
-            // Test de ping HTTP léger
-            await fetch(`http://${portal.ip}/status`, { mode: 'no-cors', signal: controller.signal });
-            status = "ONLINE";
-            clearTimeout(timeout);
-        } catch (e) {
-            status = "TIMEOUT/ERR";
+    if (role === 'super_admin') {
+        _injectSuperAdminBadge();
+
+    } else if (role === 'administrateur') {
+        navButtons.forEach(btn => {
+            if ((btn.getAttribute('onclick') || '').includes('page-systeme'))
+                btn.classList.add('admin-only');
+        });
+
+    } else if (role === 'regulier' || role === 'régulier') {
+        _applyRestrictedView(navButtons);
+
+    } else if (role === 'visiteur') {
+        _applyRestrictedView(navButtons);
+        if (expiryDate) {
+            const exp    = new Date(expiryDate);
+            const diff   = Math.round((exp - Date.now()) / 3600000);
+            const notice = document.createElement('div');
+            notice.className = 'expiry-notice';
+            notice.innerHTML = `⏱️ Accès temporaire · Expire le <strong>${exp.toLocaleString('fr-FR')}</strong>${diff > 0 && diff < 72 ? ` <span style="opacity:.7">(dans ${diff}h)</span>` : ''}`;
+            contentArea.insertAdjacentElement('afterbegin', notice);
         }
-
-        const latency = Date.now() - start;
-        results.push({ name: portal.name, ip: portal.ip, status, latency });
-        addSystemLog(`Diag ${portal.name} (${portal.ip}) : ${status}`, status === "ONLINE" ? "success" : "error");
     }
-    
-    renderDiagnosticUI(results);
 }
 
-function renderDiagnosticUI(results) {
-    const container = document.getElementById('maintenance-report-area');
-    if (!container) return;
+function _applyRestrictedView(navButtons) {
+    navButtons.forEach(btn => {
+        if (!(btn.getAttribute('onclick') || '').includes('page-accueil'))
+            btn.classList.add('admin-only');
+    });
+}
 
-    container.innerHTML = `
-        <div class="diag-card">
-            <h4 style="margin-top:0;">Rapport d'état matériel</h4>
-            ${results.map(r => `
-                <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
-                    <span><strong>${r.name}</strong> <small>(${r.ip})</small></span>
-                    <span style="color:${r.status === 'ONLINE' ? 'var(--success)' : 'var(--danger)'}">
-                        ${r.status} ${r.status === 'ONLINE' ? `(${r.latency}ms)` : ''}
+function _injectSuperAdminBadge() {
+    const header = document.querySelector('.sidebar-header');
+    if (!header || header.querySelector('.super-badge')) return;
+    const badge = document.createElement('div');
+    badge.className = 'super-badge';
+    badge.style.cssText = 'margin-top:8px;padding:3px 10px;border-radius:99px;background:linear-gradient(135deg,#f0883e,#e05c1a);color:white;font-size:.7rem;font-weight:700;letter-spacing:.08em;display:inline-flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(240,136,62,.4);';
+    badge.textContent = '★ SUPER ADMIN';
+    header.appendChild(badge);
+}
+
+function getCurrentRole() {
+    const p = typeof getCurrentProfil === 'function' ? getCurrentProfil() : null;
+    return (p?.type || p?.role || 'visiteur').toLowerCase().replace(/\s/g, '_');
+}
+
+function isAdmin() { const r = getCurrentRole(); return r === 'administrateur' || r === 'super_admin'; }
+function isSuperAdmin() { return getCurrentRole() === 'super_admin'; }
+
+/* ==================================================================
+   CHAPITRE 3 : NAVIGATION
+================================================================== */
+
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById(pageId);
+    if (target) target.classList.add('active');
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if ((btn.getAttribute('onclick') || '').includes(pageId)) btn.classList.add('active');
+    });
+
+    switch (pageId) {
+        case 'page-accueil':    renderAccueil();       break;
+        case 'page-acces':      renderAccesList();     break;
+        case 'page-profils':    renderProfilsList();   break;
+        case 'page-cles':       renderKeysList();      break;
+        case 'page-historique': renderHistory();       break;
+        case 'page-alerts':     renderAlertsSetup();   break;
+        case 'page-corbeille':  renderCorbeille();     break;
+        case 'page-systeme':    renderSystemModules(); break;
+        case 'page-reglages':
+            document.getElementById('sb-url').value = localStorage.getItem('supabase_url') || '';
+            document.getElementById('sb-key').value = localStorage.getItem('supabase_key') || '';
+            break;
+    }
+
+    document.getElementById('sidebar')?.classList.remove('open');
+    const btnBack = document.getElementById('btn-back');
+    if (btnBack) btnBack.style.display = pageId === 'page-accueil' ? 'none' : 'block';
+    if (window.lucide) lucide.createIcons();
+}
+
+function toggleSidebar() { document.getElementById('sidebar')?.classList.toggle('open'); }
+
+/* ==================================================================
+   CHAPITRE 4 : TABLEAU DE BORD
+================================================================== */
+
+function renderAccueil() {
+    const role   = getCurrentRole();
+    const profil = typeof getCurrentProfil === 'function' ? getCurrentProfil() : null;
+    if (role === 'super_admin' || role === 'administrateur') {
+        _renderAdminDashboard();
+    } else {
+        _renderUserDashboard(profil);
+    }
+}
+
+function _renderAdminDashboard() {
+    const vals = document.querySelectorAll('.stat-value');
+    if (vals[0]) vals[0].textContent = state.acces.length;
+    if (vals[1]) vals[1].textContent = state.alertLogs.filter(l => (Date.now() - new Date(l.timestamp)) < 86400000).length;
+    renderFavorites();
+}
+
+function _renderUserDashboard(profil) {
+    const container = document.getElementById('favorites-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const authorizedIds = profil?.authorized_access || [];
+    const myAccess = authorizedIds.length > 0
+        ? state.acces.filter(a => authorizedIds.includes(a.id))
+        : state.acces;
+
+    if (myAccess.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Aucun accès autorisé pour votre profil.</p></div>';
+        return;
+    }
+
+    myAccess.forEach(acc => {
+        const allowed = _isAccessAllowedNow(acc);
+        const card    = document.createElement('div');
+        card.className = 'card access-tile animate-in';
+        card.style.borderLeftColor = allowed ? 'var(--green)' : 'var(--border)';
+        card.innerHTML = `
+            <div class="tile-header">
+                <div class="tile-info">
+                    <h4>${acc.name}</h4>
+                    <span class="status-indicator" style="color:${allowed ? 'var(--green)' : 'var(--text-muted)'}">
+                        ${allowed ? 'Accès autorisé' : 'Hors plage horaire'}
                     </span>
                 </div>
-            `).join('')}
-            <button onclick="runHardwareDiagnostic()" class="btn-action" style="margin-top:15px; width:100%;">RAFRAÎCHIR LE TEST</button>
-        </div>
-    `;
+            </div>
+            <div class="tile-body"><div class="ip-badge"><i data-lucide="network"></i> ${acc.ip}</div></div>
+            <div class="tile-actions">
+                ${allowed
+                    ? `<button class="btn-action-primary" onclick="openControlModal('${acc.id}', '${acc.name}')"><i data-lucide="unplug"></i> Contrôler</button>`
+                    : `<span style="font-size:.8rem;color:var(--text-muted)">⏰ Hors horaires</span>`}
+            </div>`;
+        container.appendChild(card);
+    });
+    if (window.lucide) lucide.createIcons();
 }
 
-// --- FIN BLOC 3 ---
-/* ==========================================================================
-   SECTION 8 : GÉOFENCING & LOCALISATION (GPS MODULE)
-   (Consigne 2026-01-27 : Ouverture automatique sécurisée)
-   ========================================================================== */
-
-let geoWatchId = null;
-
-/**
- * toggleGeofencing : Active ou désactive la surveillance GPS
- */
-function toggleGeofencing(enable) {
-    if (enable && navigator.geolocation) {
-        addSystemLog("Surveillance GPS active (Proximité)", "info");
-        geoWatchId = navigator.geolocation.watchPosition(
-            checkProximity, 
-            (err) => addSystemLog("Erreur GPS : " + err.message, "error"), 
-            { enableHighAccuracy: true, distanceFilter: 10 }
-        );
-    } else if (geoWatchId) {
-        navigator.geolocation.clearWatch(geoWatchId);
-        addSystemLog("Surveillance GPS désactivée", "info");
-    }
-}
-
-function checkProximity(position) {
-    const uLat = position.coords.latitude;
-    const uLon = position.coords.longitude;
-    const radius = appConfig.settings.gpsRadius;
-
-    appConfig.portals.forEach(portal => {
-        if (portal.lat && portal.lon) {
-            const dist = calculateDistance(uLat, uLon, portal.lat, portal.lon);
-            if (dist < radius) {
-                // Déclenche une confirmation visuelle avant ouverture (Sécurité)
-                triggerGpsAlert(portal);
-            }
-        }
+function _isAccessAllowedNow(acc) {
+    if (!acc.planning?.slots) return true;
+    const now  = new Date();
+    const day  = now.getDay();
+    const time = now.getHours() * 60 + now.getMinutes();
+    return (acc.planning.slots[day] || []).some(slot => {
+        const [sh, sm] = slot.start.split(':').map(Number);
+        const [eh, em] = slot.end.split(':').map(Number);
+        return time >= sh * 60 + sm && time <= eh * 60 + em;
     });
 }
 
-function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371e3; // Rayon Terre
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-/* ==========================================================================
-   SECTION 9 : DESIGN SYSTÈME DYNAMIQUE (UI ENGINE)
-   (Consigne 2026-02-08 : Insertion images et wallpapers Thera Connect)
-   ========================================================================== */
-
-function injectGlobalStyles() {
-    const css = `
-        :root {
-            --accent: ${appConfig.branding.color};
-            --bg-main: #f4f7f9;
-            --card-bg: #ffffff;
-            --text-dark: #2d3436;
-            --text-light: #636e72;
-            --success: #00b894;
-            --danger: #d63031;
-            --shadow-pro: 0 10px 25px rgba(0,0,0,0.05);
-        }
-
-        body { 
-            margin: 0; padding: 0; font-family: 'Inter', sans-serif;
-            background: var(--bg-main); color: var(--text-dark);
-            -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
-        }
-
-        /* --- Mise en page des sections --- */
-        .app-page { display: none; min-height: 100vh; padding: 20px 20px 100px 20px; box-sizing: border-box; }
-        .active-view { display: block; animation: fadeIn 0.4s ease; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* --- Cartes Portails Professionnelles --- */
-        .portal-card {
-            background: var(--card-bg); border-radius: 24px; padding: 24px;
-            box-shadow: var(--shadow-pro); display: flex; justify-content: space-between;
-            align-items: center; border-left: 6px solid var(--accent);
-            margin-bottom: 15px; transition: transform 0.2s;
-        }
-        .portal-card:active { transform: scale(0.97); }
-
-        .btn-open-main {
-            background: var(--accent); color: white; border: none;
-            padding: 15px 30px; border-radius: 16px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 4px 12px rgba(0,123,255,0.25);
-        }
-
-        /* --- Barre de Navigation Inférieure --- */
-        .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: rgba(255,255,255,0.9); backdrop-filter: blur(12px);
-            display: flex; justify-content: space-around;
-            padding: 15px 10px calc(15px + env(safe-area-inset-bottom));
-            border-top: 1px solid rgba(0,0,0,0.05); z-index: 1000;
-        }
-
-        .nav-item { color: var(--text-light); text-decoration: none; text-align: center; flex: 1; font-size: 0.75rem; }
-        .nav-item.active { color: var(--accent); font-weight: 700; }
-
-        /* --- Toasts et Modales --- */
-        .toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            padding: 12px 25px; border-radius: 50px; background: #333; color: white;
-            font-size: 0.9rem; z-index: 10001; opacity: 0; transition: opacity 0.3s;
-        }
-        .toast-show { opacity: 1; }
-    `;
-    const styleSheet = document.createElement("style");
-    styleSheet.innerText = css;
-    document.head.appendChild(styleSheet);
-}
-
-/* ==========================================================================
-   SECTION 10 : MODULE LAPI & QUAI (INDUSTRIAL LOGIC)
-   (Consigne 2026-01-27 : Gestion spécifique Coffret Quai)
-   ========================================================================== */
-
-const IndustryEngine = {
-    async processLapiDetection(plateNumber) {
-        if (!appConfig.modules.lapi) return;
-        
-        addSystemLog(`Analyse LAPI : Plaque détectée ${plateNumber}`, "info");
-        
-        // Recherche du profil correspondant (Double vérification 2026-01-26)
-        const profile = appConfig.users.find(u => u.plate_number === plateNumber);
-        
-        if (profile && checkInstantAccess(profile)) {
-            addSystemLog(`Accès LAPI autorisé pour ${profile.firstname}`, "success");
-            const entryGate = appConfig.portals.find(p => p.type === 'entree');
-            if (entryGate) sendHardwareCommand(entryGate.relayIndex, entryGate.id);
-        } else {
-            addSystemLog(`Accès LAPI refusé : Plaque ${plateNumber} inconnue/bloquée`, "warning");
-        }
-    },
-
-    async handleQuayAssignment(quayId) {
-        const quay = appConfig.portals.find(p => p.id === quayId);
-        if (quay && quay.status === 'LIBRE') {
-            addSystemLog(`Attribution Quai : ${quay.name}`, "info");
-            sendHardwareCommand(quay.relayIndex, quay.id);
-        }
+function renderFavorites() {
+    const container = document.getElementById('favorites-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const favs = state.acces.filter(a => a.is_favorite);
+    if (!favs.length) {
+        container.innerHTML = '<div class="empty-state"><p>Aucun favori — marquez un accès ★ pour le voir ici.</p></div>';
+        return;
     }
-};
-
-/* ==========================================================================
-   SECTION 11 : INITIALISATION FINALE ET LANCEMENT
-   (Consigne 2026-01-14 : Provide launch command)
-   ========================================================================== */
-
-/**
- * initializeApp : Démarre tous les services Thera Connect
- */
-function initializeApp() {
-    console.log(`%c THERA CONNECT V${appConfig.version} - BOOT SUCCESS `, "background: #007bff; color: white; font-weight: bold;");
-    
-    // 1. Montage CSS
-    injectGlobalStyles();
-    
-    // 2. Lancement Session Cloud ou Backup
-    bootSystem();
-    
-    // 3. Activation des modules secondaires
-    if (appConfig.modules.geo) toggleGeofencing(true);
-    
-    // 4. Protection Crash (Consigne 2026-01-26)
-    window.onerror = function(msg, url, line) {
-        addSystemLog(`CRASH ÉVITÉ : ${msg} (Ligne ${line})`, "error");
-        return false;
-    };
-
-    addSystemLog("Système prêt et opérationnel", "success");
+    favs.forEach(acc => {
+        const card = document.createElement('div');
+        card.className = 'card access-tile animate-in';
+        card.innerHTML = `
+            <div class="tile-header"><div class="tile-info">
+                <h4>${acc.name}</h4>
+                <span class="status-indicator online">Opérationnel</span>
+            </div></div>
+            <div class="tile-body"><div class="ip-badge"><i data-lucide="network"></i> ${acc.ip}</div></div>
+            <div class="tile-actions">
+                <button class="btn-action-primary" onclick="openControlModal('${acc.id}', '${acc.name}')">
+                    <i data-lucide="unplug"></i> Contrôler
+                </button>
+            </div>`;
+        container.appendChild(card);
+    });
+    if (window.lucide) lucide.createIcons();
 }
 
-// Lancement automatique au chargement
-document.addEventListener('DOMContentLoaded', initializeApp);
+/* ==================================================================
+   CHAPITRE 5 : COMMANDES ESP32 — HTTP + BLUETOOTH
+================================================================== */
 
-/**
- * COMMANDE DE LANCEMENT : 
- * initializeApp(); 
- * (Invoquée automatiquement par l'événement DOMContentLoaded)
- */
+function openModal(id)  { const m = document.getElementById(id); if (m) m.style.display = 'flex'; }
+function closeModal(id) { const m = document.getElementById(id); if (m) m.style.display = 'none'; }
 
-/* ==========================================================================
-   FIN DU FICHIER SCRIPT.JS - VERSION STABLE V300 (2500 LIGNES DE LOGIQUE)
-   ========================================================================== */
+function openControlModal(accId, accName) {
+    currentTargetId = accId;
+    const el = document.getElementById('modal-title-target');
+    if (el) el.textContent = accName;
+    openModal('modal-control');
+}
+
+async function confirmCommand(action) {
+    const acc = state.acces.find(a => a.id === currentTargetId);
+    if (!acc) return;
+    closeModal('modal-control');
+
+    const httpOk = await _sendHttpCommand(acc, action);
+    if (!httpOk) {
+        showToast('WiFi indisponible — tentative Bluetooth...', 'info');
+        const btOk = await _sendBluetoothCommand(acc, action);
+        if (!btOk) { showToast(`Commande ${action} échouée sur tous les canaux`, 'error'); return; }
+    }
+
+    const profil = typeof getCurrentProfil === 'function' ? getCurrentProfil() : null;
+    addHistoryEntry(profil?.name || 'Système', acc.name, action, httpOk ? 'WiFi' : 'Bluetooth');
+    showToast(`✅ ${acc.name} — ${action}`, 'success');
+    renderAccueil();
+}
+
+async function _sendHttpCommand(acc, action) {
+    if (!acc.ip) return false;
+    const status = action === 'OUVRIR' ? '1' : '0';
+    const url    = `http://${acc.ip}/relay?id=${acc.relay_id || 1}&status=${status}`;
+    try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 4000);
+        await fetch(url, { signal: ctrl.signal, mode: 'no-cors' });
+        return true;
+    } catch (err) {
+        console.warn('HTTP erreur:', err.message);
+        return false;
+    }
+}
+
+async function _sendBluetoothCommand(acc, action) {
+    if (!navigator.bluetooth) { showToast('Bluetooth : Chrome requis', 'error'); return false; }
+    try {
+        if (!bluetoothDevice?.gatt?.connected) {
+            bluetoothDevice = await navigator.bluetooth.requestDevice({
+                filters: [{ namePrefix: acc.bt_name || 'KC868' }],
+                optionalServices: [BT_SERVICE_UUID]
+            });
+            const server   = await bluetoothDevice.gatt.connect();
+            const service  = await server.getPrimaryService(BT_SERVICE_UUID);
+            bluetoothCharac = await service.getCharacteristic(BT_CHAR_UUID);
+        }
+        const cmd = action === 'OUVRIR' ? `RELAY:${acc.relay_id || 1}:ON\r\n` : `RELAY:${acc.relay_id || 1}:OFF\r\n`;
+        await bluetoothCharac.writeValue(new TextEncoder().encode(cmd));
+        return true;
+    } catch (err) {
+        console.warn('BT erreur:', err.message);
+        bluetoothDevice = null;
+        return false;
+    }
+}
+
+async function connectBluetooth() {
+    if (!navigator.bluetooth) { showToast('WebBluetooth requis (Chrome)', 'error'); return; }
+    try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [BT_SERVICE_UUID]
+        });
+        bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+            showToast('📶 Bluetooth déconnecté', 'error');
+            bluetoothDevice = null; bluetoothCharac = null;
+            _updateBtStatus(false);
+        });
+        const server   = await bluetoothDevice.gatt.connect();
+        const service  = await server.getPrimaryService(BT_SERVICE_UUID);
+        bluetoothCharac = await service.getCharacteristic(BT_CHAR_UUID);
+        showToast(`📶 Bluetooth connecté : ${bluetoothDevice.name}`, 'success');
+        _updateBtStatus(true, bluetoothDevice.name);
+
+        await bluetoothCharac.startNotifications();
+        bluetoothCharac.addEventListener('characteristicvaluechanged', (e) => {
+            const msg = new TextDecoder().decode(e.target.value).trim();
+            console.log('📶 BT reçu:', msg);
+            if (msg.startsWith('SENSOR:') && msg.includes(':ALARM')) {
+                const id  = msg.split(':')[1];
+                const nom = state.acces.find(a => a.relay_id == id)?.name || `Capteur ${id}`;
+                addAlertLog(`⚠️ Alarme capteur — ${nom}`);
+                showToast(`⚠️ Alerte : ${nom}`, 'error');
+            }
+            if (msg.startsWith('INPUT:') && msg.includes(':OPEN')) {
+                const id  = msg.split(':')[1];
+                const acc = state.acces.find(a => a.sensor_id == id);
+                if (acc) addAlertLog(`🚪 Portail ouvert détecté — ${acc.name}`);
+            }
+        });
+    } catch (err) {
+        showToast('Connexion Bluetooth annulée', 'error');
+    }
+}
+
+function _updateBtStatus(connected, name = '') {
+    const el = document.getElementById('bt-status-indicator');
+    if (!el) return;
+    el.textContent = connected ? `📶 ${name}` : '📶 Déconnecté';
+    el.style.color = connected ? 'var(--green)' : 'var(--text-muted)';
+}
+
+/* ==================================================================
+   CHAPITRE 6 : PLANNING CALENDRIER (drag & drop créneaux)
+================================================================== */
+
+const DAYS  = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const SLOT_H = 40; // px par heure
+
+function openPlanningEditor(accId) {
+    planningAccId = accId;
+    const acc = state.acces.find(a => a.id === accId);
+    if (!acc) return;
+    planningSlots = acc.planning?.slots ? JSON.parse(JSON.stringify(acc.planning.slots)) : {};
+    const titleEl = document.getElementById('planning-editor-title');
+    if (titleEl) titleEl.textContent = `Planning — ${acc.name}`;
+    openModal('modal-planning');
+    _renderCalendar();
+}
+
+function _renderCalendar() {
+    const grid = document.getElementById('planning-calendar-grid');
+    if (!grid) return;
+
+    grid.innerHTML = `
+        <div class="cal-layout">
+            <div class="cal-hours-col">
+                ${HOURS.map(h => `<div class="cal-hour-label" style="height:${SLOT_H}px">${String(h).padStart(2,'0')}:00</div>`).join('')}
+            </div>
+            ${DAYS.map((day, di) => `
+                <div class="cal-day-col" data-day="${di}"
+                    style="position:relative;height:${24*SLOT_H}px;"
+                    ondragover="event.preventDefault()"
+                    ondrop="_calDrop(event,${di})">
+                    ${HOURS.map(h => `<div class="cal-grid-line" style="top:${h*SLOT_H}px" title="Double-clic pour ajouter" ondblclick="_calAddSlot(${di},${h})"></div>`).join('')}
+                    ${_renderDaySlots(di)}
+                </div>`).join('')}
+        </div>`;
+
+    const header = document.getElementById('planning-calendar-header');
+    if (header) header.innerHTML = `<div class="cal-th-empty"></div>${DAYS.map(d => `<div class="cal-th-day">${d}</div>`).join('')}`;
+    if (window.lucide) lucide.createIcons();
+}
+
+function _renderDaySlots(di) {
+    return (planningSlots[di] || []).map((slot, i) => {
+        const [sh, sm] = slot.start.split(':').map(Number);
+        const [eh, em] = slot.end.split(':').map(Number);
+        const top    = (sh + sm / 60) * SLOT_H;
+        const height = Math.max(((eh + em / 60) - (sh + sm / 60)) * SLOT_H, 20);
+        return `
+            <div class="cal-slot" draggable="true" style="top:${top}px;height:${height}px"
+                data-day="${di}" data-idx="${i}"
+                ondragstart="_calDragStart(event,${di},${i})">
+                <span class="cal-slot-label">${slot.start}<br><small>${slot.end}</small></span>
+                <button class="cal-slot-del" onclick="event.stopPropagation();_calDeleteSlot(${di},${i})">×</button>
+                <div class="cal-slot-resize" onmousedown="_calResizeStart(event,${di},${i})"></div>
+            </div>`;
+    }).join('');
+}
+
+function _calAddSlot(di, h) {
+    if (!planningSlots[di]) planningSlots[di] = [];
+    planningSlots[di].push({ start: `${String(h).padStart(2,'0')}:00`, end: `${String(Math.min(h+2,23)).padStart(2,'0')}:00` });
+    _renderCalendar();
+}
+
+function _calDeleteSlot(di, i) { planningSlots[di].splice(i, 1); _renderCalendar(); }
+
+function _calDragStart(e, di, i) { planningDragData = { di, i }; e.dataTransfer.effectAllowed = 'move'; }
+
+function _calDrop(e, targetDay) {
+    e.preventDefault();
+    if (!planningDragData) return;
+    const { di: src, i } = planningDragData;
+    const slot = planningSlots[src]?.[i];
+    if (!slot) return;
+    const rect    = e.currentTarget.getBoundingClientRect();
+    const relY    = e.clientY - rect.top;
+    const newH    = Math.max(0, Math.min(22, Math.floor(relY / SLOT_H)));
+    const dur     = _slotDuration(slot);
+    planningSlots[src].splice(i, 1);
+    if (!planningSlots[targetDay]) planningSlots[targetDay] = [];
+    planningSlots[targetDay].push({ start: `${String(newH).padStart(2,'0')}:00`, end: `${String(Math.min(newH+dur,24)).padStart(2,'0')}:00` });
+    planningDragData = null;
+    _renderCalendar();
+}
+
+function _calResizeStart(e, di, i) {
+    e.preventDefault(); e.stopPropagation();
+    const startY  = e.clientY;
+    const slot    = planningSlots[di][i];
+    const [eh, em] = slot.end.split(':').map(Number);
+    const startEnd = eh + em / 60;
+    const [sh]    = slot.start.split(':').map(Number);
+    function onMove(ev) {
+        const newEnd = Math.max(sh + 0.5, Math.min(24, startEnd + (ev.clientY - startY) / SLOT_H));
+        const h = Math.floor(newEnd);
+        const m = Math.round((newEnd - h) * 60 / 15) * 15;
+        slot.end = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        _renderCalendar();
+    }
+    function onUp() { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+}
+
+function _slotDuration(slot) {
+    const [sh, sm] = slot.start.split(':').map(Number);
+    const [eh, em] = slot.end.split(':').map(Number);
+    return (eh + em / 60) - (sh + sm / 60);
+}
+
+async function savePlanning() {
+    const acc = state.acces.find(a => a.id === planningAccId);
+    if (!acc) return;
+    Object.keys(planningSlots).forEach(d => planningSlots[d].sort((a, b) => a.start.localeCompare(b.start)));
+    const planning = { slots: planningSlots };
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('access_points').update({ planning }).eq('id', planningAccId);
+            if (error) throw error;
+        }
+        const idx = state.acces.findIndex(a => a.id === planningAccId);
+        if (idx !== -1) state.acces[idx].planning = planning;
+        closeModal('modal-planning');
+        showToast(`✅ Planning enregistré pour ${acc.name}`);
+    } catch (err) { showToast('Erreur planning : ' + err.message, 'error'); }
+}
+
+function clearPlanning() { if (confirm('Effacer tous les créneaux ?')) { planningSlots = {}; _renderCalendar(); } }
+
+/* ==================================================================
+   CHAPITRE 7 : GESTION DES ACCÈS
+================================================================== */
+
+function renderAccesList() {
+    const container = document.getElementById('list-acces-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    container.className = 'responsive-grid';
+    if (!state.acces.length) { container.innerHTML = '<div class="empty-state"><p>Aucun point d\'accès.</p></div>'; return; }
+    state.acces.forEach(acc => {
+        const card = document.createElement('div');
+        card.className = 'card item-card animate-in';
+        card.onclick = () => openAccesEdit(acc.id);
+        card.innerHTML = `
+            <div class="main-info">
+                <div class="avatar"><i data-lucide="cpu"></i></div>
+                <div>
+                    <div style="font-weight:700">${acc.name}</div>
+                    <div class="ip-badge"><i data-lucide="network"></i>${acc.ip}</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn-small" onclick="event.stopPropagation();openPlanningEditor('${acc.id}')">
+                    <i data-lucide="calendar"></i> Planning
+                </button>
+                <div class="card-arrow"><i data-lucide="chevron-right"></i></div>
+            </div>`;
+        container.appendChild(card);
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function openAccesEdit(id) {
+    currentEditingId = id;
+    const acc = state.acces.find(a => a.id === id);
+    if (!acc) return;
+    document.getElementById('acces-list-view').style.display = 'none';
+    document.getElementById('acces-edit-view').style.display = 'block';
+    document.getElementById('edit-acc-name').value = acc.name || '';
+    document.getElementById('edit-acc-ip').value   = acc.ip   || '';
+    const relayEl = document.getElementById('edit-acc-relay');
+    const btEl    = document.getElementById('edit-acc-bt');
+    if (relayEl) relayEl.value = acc.relay_id || '1';
+    if (btEl)    btEl.value   = acc.bt_name  || '';
+    toggleEditMode(false);
+}
+
+function closeAccesEdit() {
+    document.getElementById('acces-list-view').style.display = 'block';
+    document.getElementById('acces-edit-view').style.display = 'none';
+}
+
+function toggleEditMode(isEditable) {
+    ['edit-acc-name','edit-acc-ip','edit-acc-relay','edit-acc-bt'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !isEditable;
+    });
+    document.getElementById('btn-unlock-edit').style.display = isEditable ? 'none'  : 'block';
+    document.getElementById('btn-save-edit').style.display   = isEditable ? 'block' : 'none';
+}
+
+async function saveAccesModifications() {
+    const updates = {
+        name:     document.getElementById('edit-acc-name').value.trim(),
+        ip:       document.getElementById('edit-acc-ip').value.trim(),
+        relay_id: parseInt(document.getElementById('edit-acc-relay')?.value || 1),
+        bt_name:  document.getElementById('edit-acc-bt')?.value.trim() || ''
+    };
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('access_points').update(updates).eq('id', currentEditingId);
+            if (error) throw error;
+        }
+        const idx = state.acces.findIndex(a => a.id === currentEditingId);
+        if (idx !== -1) Object.assign(state.acces[idx], updates);
+        toggleEditMode(false);
+        showToast('✅ Accès mis à jour');
+    } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
+}
+
+function openAddAccesForm() {
+    ['new-acc-name','new-acc-ip'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    openModal('modal-add-acces');
+}
+
+async function createNewAcces() {
+    const name = document.getElementById('new-acc-name').value.trim();
+    const ip   = document.getElementById('new-acc-ip').value.trim();
+    if (!name || !ip) { showToast('Remplissez tous les champs', 'error'); return; }
+    if (!supabaseClient) { showToast('Supabase non connecté', 'error'); return; }
+    try {
+        const entry = { name, ip, relay_id: 1, is_favorite: false, planning: { slots: {} } };
+        const { data, error } = await supabaseClient.from('access_points').insert([entry]).select();
+        if (error) throw error;
+        state.acces.push(data[0]);
+        closeModal('modal-add-acces');
+        showToast('✅ Accès créé');
+        renderAccesList();
+    } catch (err) { showToast('Erreur création : ' + err.message, 'error'); }
+}
+
+/* ==================================================================
+   CHAPITRE 8 : PROFILS & INVITATIONS
+================================================================== */
+
+function renderProfilsList() {
+    const container = document.getElementById('list-profils-grid');
+    if (!container) return;
+    container.innerHTML = '';
+    container.className = 'responsive-grid';
+    const colors = { 'super_admin': '#f0883e', 'Administrateur': 'var(--blue)', 'Régulier': 'var(--green)', 'Visiteur': 'var(--text-muted)' };
+    state.profils.forEach(prof => {
+        const role  = prof.type || prof.role || 'Régulier';
+        const color = colors[role] || 'var(--text-muted)';
+        const card  = document.createElement('div');
+        card.className = 'card item-card animate-in';
+        card.onclick = () => openProfilEdit(prof.id);
+        card.innerHTML = `
+            <div class="main-info">
+                <div class="avatar" style="background:${color}20;color:${color}">
+                    <i data-lucide="user"></i>
+                </div>
+                <div>
+                    <div style="font-weight:700">${prof.name}</div>
+                    <div style="display:flex;gap:6px;align-items:center;margin-top:3px;">
+                        <span style="width:7px;height:7px;border-radius:50%;background:${color};display:inline-block"></span>
+                        <span style="font-size:.8rem;color:var(--text-sub)">${role}</span>
+                        ${prof.expires_at ? `<span style="font-size:.75rem;color:var(--orange)">· ${new Date(prof.expires_at).toLocaleDateString('fr-FR')}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn-small" onclick="event.stopPropagation();resendInvitation('${prof.email}','${prof.name}','${role}')">
+                    <i data-lucide="mail"></i> Inviter
+                </button>
+                <div class="card-arrow"><i data-lucide="chevron-right"></i></div>
+            </div>`;
+        container.appendChild(card);
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+function openAddProfilForm() {
+    ['new-prof-name','new-prof-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    toggleDateInput();
+    openModal('modal-add-profil');
+}
+
+function toggleDateInput() {
+    const type = document.getElementById('new-prof-type').value;
+    const el   = document.getElementById('expiry-date-container');
+    if (el) el.style.display = type === 'Visiteur' ? 'block' : 'none';
+}
+
+async function createNewProfil() {
+    const name   = document.getElementById('new-prof-name').value.trim();
+    const email  = document.getElementById('new-prof-email').value.trim();
+    const type   = document.getElementById('new-prof-type').value;
+    const expiry = document.getElementById('new-prof-expiry')?.value || null;
+    if (!name || !email) { showToast('Nom et email requis', 'error'); return; }
+
+    const newProfil = { name, email, type, role: type, is_active: true, expires_at: type === 'Visiteur' ? expiry : null };
+    try {
+        if (supabaseClient) {
+            const { data, error } = await supabaseClient.from('profiles').insert([newProfil]).select();
+            if (error) throw error;
+            if (data?.[0]) state.profils.push(data[0]);
+        } else {
+            newProfil.id = Date.now();
+            state.profils.push(newProfil);
+        }
+        await _sendInvitation(email, name, type);
+        closeModal('modal-add-profil');
+        renderProfilsList();
+        showToast(`✅ Profil créé · Invitation envoyée à ${email}`);
+    } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
+}
+
+async function resendInvitation(email, name, role) {
+    if (!email) { showToast('Email manquant sur ce profil', 'error'); return; }
+    await _sendInvitation(email, name, role);
+    showToast(`📧 Invitation renvoyée à ${email}`);
+}
+
+async function _sendInvitation(email, name, role) {
+    if (!supabaseClient) return;
+    try {
+        await supabaseClient.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}?setup=1&role=${encodeURIComponent(role)}&name=${encodeURIComponent(name)}`
+        });
+    } catch (err) {
+        console.warn('Invitation non envoyée:', err.message);
+    }
+}
+
+function openProfilEdit(id) {
+    currentEditingProfilId = id;
+    const prof = state.profils.find(p => p.id === id);
+    if (!prof) return;
+    document.getElementById('profils-list-view').style.display = 'none';
+    document.getElementById('profil-edit-view').style.display  = 'block';
+    document.getElementById('edit-prof-name').value   = prof.name   || '';
+    document.getElementById('edit-prof-email').value  = prof.email  || '';
+    document.getElementById('edit-prof-type').value   = prof.type   || prof.role || 'Régulier';
+    document.getElementById('edit-prof-code').value   = prof.code   || '';
+    document.getElementById('edit-prof-badge').value  = prof.badge  || '';
+    document.getElementById('edit-prof-remote').value = prof.remote || '';
+    _renderProfilAccessRights(prof);
+    toggleProfilEditMode(false);
+}
+
+function _renderProfilAccessRights(prof) {
+    const container = document.getElementById('profil-permissions-container');
+    if (!container) return;
+    const authorized = prof.authorized_access || [];
+    container.innerHTML = state.acces.map(acc => `
+        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border)">
+            <input type="checkbox" id="perm-${acc.id}" value="${acc.id}"
+                ${authorized.includes(acc.id) ? 'checked' : ''} disabled
+                style="width:16px;height:16px;accent-color:var(--primary)">
+            <span style="font-size:.9rem;flex:1">${acc.name}</span>
+            <span class="ip-badge">${acc.ip}</span>
+        </label>`).join('') || '<p style="color:var(--text-muted);font-size:.85rem">Aucun accès configuré.</p>';
+}
+
+function closeProfilEdit() {
+    document.getElementById('profils-list-view').style.display = 'block';
+    document.getElementById('profil-edit-view').style.display  = 'none';
+}
+
+function toggleProfilEditMode(isEditable) {
+    ['edit-prof-name','edit-prof-email','edit-prof-type','edit-prof-code','edit-prof-badge','edit-prof-remote'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !isEditable;
+    });
+    document.querySelectorAll('#profil-permissions-container input[type="checkbox"]').forEach(cb => cb.disabled = !isEditable);
+    document.getElementById('btn-unlock-prof').style.display = isEditable ? 'none'  : 'block';
+    document.getElementById('btn-save-prof').style.display   = isEditable ? 'block' : 'none';
+}
+
+async function saveProfilModifications() {
+    const code = document.getElementById('edit-prof-code').value;
+    if (state.profils.some(p => p.code === code && p.id !== currentEditingProfilId && code !== '')) {
+        showToast('⚠️ Ce code est déjà utilisé', 'error'); return;
+    }
+    const authorized = Array.from(document.querySelectorAll('#profil-permissions-container input:checked')).map(cb => cb.value);
+    const updates = {
+        name: document.getElementById('edit-prof-name').value,
+        email: document.getElementById('edit-prof-email').value,
+        type: document.getElementById('edit-prof-type').value,
+        code, badge: document.getElementById('edit-prof-badge').value,
+        remote: document.getElementById('edit-prof-remote').value,
+        authorized_access: authorized
+    };
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('profiles').update(updates).eq('id', currentEditingProfilId);
+            if (error) throw error;
+        }
+        const idx = state.profils.findIndex(p => p.id === currentEditingProfilId);
+        if (idx !== -1) Object.assign(state.profils[idx], updates);
+        toggleProfilEditMode(false);
+        showToast('✅ Profil mis à jour');
+    } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
+}
+
+/* ==================================================================
+   CHAPITRE 9 : ALERTES
+================================================================== */
+
+function renderAlertsSetup() {
+    document.getElementById('alert-setup-view').style.display = 'block';
+    document.getElementById('alert-logs-view').style.display  = 'none';
+    prepareAlertSetup();
+}
+
+function showAlertSubPage(view) {
+    document.getElementById('alert-setup-view').style.display = view === 'setup' ? 'block' : 'none';
+    document.getElementById('alert-logs-view').style.display  = view === 'logs'  ? 'block' : 'none';
+    if (view === 'setup') prepareAlertSetup(); else renderAlertLogs();
+}
+
+function prepareAlertSetup() {
+    const select = document.getElementById('alert-target-access');
+    if (select) select.innerHTML = state.acces.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+    const dg = document.getElementById('alert-days-grid');
+    if (dg) dg.innerHTML = ['L','M','M','J','V','S','D'].map((d,i) =>
+        `<label><input type="checkbox" class="alert-day-check" value="${(i+1)%7}"> ${d}</label>`).join('');
+    toggleAlertFields();
+}
+
+function toggleAlertFields() {
+    const type = document.getElementById('alert-type-select')?.value;
+    const fd   = document.getElementById('field-duration');
+    const fp   = document.getElementById('field-planning');
+    if (!fd || !fp) return;
+    const showDur = ['stay_open','hardware_cell'].includes(type);
+    fd.style.display = showDur ? 'block' : 'none';
+    fp.style.display = showDur ? 'none'  : 'block';
+}
+
+async function saveNewAlertRule() {
+    const rule = {
+        id: Date.now(),
+        accessId: document.getElementById('alert-target-access')?.value,
+        type:     document.getElementById('alert-type-select')?.value,
+        limit:    document.getElementById('alert-limit-time')?.value,
+        days:     Array.from(document.querySelectorAll('.alert-day-check:checked')).map(cb => cb.value),
+        start:    document.getElementById('alert-start')?.value,
+        end:      document.getElementById('alert-end')?.value,
+        created:  new Date().toISOString()
+    };
+    if (supabaseClient) await supabaseClient.from('alert_rules').insert([rule]).catch(() => {});
+    state.alertRules.push(rule);
+    showToast('✅ Règle d\'alerte enregistrée');
+    showAlertSubPage('logs');
+}
+
+function addAlertLog(message) {
+    state.alertLogs.unshift({ timestamp: new Date(), text: message });
+    const limit = new Date();
+    limit.setDate(limit.getDate() - 15);
+    state.alertLogs = state.alertLogs.filter(l => l.timestamp > limit);
+    renderAlertLogs();
+}
+
+function renderAlertLogs() {
+    const container = document.getElementById('alert-history-list');
+    if (!container) return;
+    container.innerHTML = state.alertLogs.length
+        ? state.alertLogs.map(l => `<div class="alert-item"><small>${new Date(l.timestamp).toLocaleString('fr-FR')}</small><div>${l.text}</div></div>`).join('')
+        : '<p style="text-align:center;color:var(--text-muted);padding:24px">Aucune alerte récente.</p>';
+}
+
+/* ==================================================================
+   CHAPITRE 10 : CLÉS & BADGES
+================================================================== */
+
+function setKeyFilter(f) {
+    currentKeyFilter = f;
+    document.querySelectorAll('.chip').forEach(btn => {
+        const map = { all:'Tout', code:'Codes', badge:'Badges', remote:'Télécommandes' };
+        btn.classList.toggle('active', btn.textContent.trim() === map[f]);
+    });
+    renderKeysList();
+}
+
+function renderKeysList() {
+    const tbody  = document.getElementById('keys-table-body');
+    if (!tbody) return;
+    const search = document.getElementById('search-key-input')?.value.toLowerCase() || '';
+    tbody.innerHTML = '';
+    state.profils.forEach(prof => {
+        [{ type:'code', val:prof.code, icon:'🔢' },
+         { type:'badge', val:prof.badge, icon:'🪪' },
+         { type:'remote', val:prof.remote, icon:'📡' }].forEach(k => {
+            if (!k.val) return;
+            if (currentKeyFilter !== 'all' && k.type !== currentKeyFilter) return;
+            if (search && !k.val.toLowerCase().includes(search) && !prof.name.toLowerCase().includes(search)) return;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${k.icon} ${k.type.toUpperCase()}</td>
+                <td><code style="font-family:'DM Mono',monospace;font-size:.85rem">${k.val}</code></td>
+                <td>${prof.name}</td>
+                <td><button class="btn-small" onclick="openProfilEdit('${prof.id}')"><i data-lucide="eye"></i> Voir</button></td>`;
+            tbody.appendChild(tr);
+        });
+    });
+    if (!tbody.innerHTML) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">Aucune clé trouvée.</td></tr>';
+    if (window.lucide) lucide.createIcons();
+}
+
+function filterKeys() { renderKeysList(); }
+
+/* ==================================================================
+   CHAPITRE 11 : HISTORIQUE
+================================================================== */
+
+function addHistoryEntry(user, access, action, source = 'App') {
+    state.historique.unshift({ id: Date.now(), timestamp: new Date(), user, access, action, source });
+    const limit = new Date();
+    limit.setDate(limit.getDate() - 15);
+    state.historique = state.historique.filter(i => new Date(i.timestamp) > limit);
+    if (supabaseClient) supabaseClient.from('command_logs').insert([{ user_name: user, access_name: access, action, source }]).catch(() => {});
+}
+
+function renderHistory() {
+    const tbody    = document.getElementById('history-table-body');
+    const emptyMsg = document.getElementById('history-empty-msg');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!state.historique.length) { if (emptyMsg) emptyMsg.style.display = 'block'; return; }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    state.historique.forEach(item => {
+        const d  = new Date(item.timestamp);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><small>${d.toLocaleDateString('fr-FR')}</small> <b>${d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</b></td>
+            <td>${item.user||'Système'}</td>
+            <td>${item.access||'Général'}</td>
+            <td><span class="badge-${(item.action||'info').toLowerCase()}">${item.action}</span></td>
+            <td><small>${item.source||'App'}</small></td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function exportHistory() {
+    if (!state.historique.length) { showToast('Rien à exporter', 'error'); return; }
+    const csv  = 'Date;Heure;Utilisateur;Accès;Action;Source\n' +
+        state.historique.map(h => {
+            const d = new Date(h.timestamp);
+            return `${d.toLocaleDateString('fr-FR')};${d.toLocaleTimeString('fr-FR')};${h.user};${h.access};${h.action};${h.source}`;
+        }).join('\n');
+    const link = document.createElement('a');
+    link.href  = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    link.download = `historique_thera_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+}
+
+/* ==================================================================
+   CHAPITRE 12 : CORBEILLE
+================================================================== */
+
+function renderCorbeille() {
+    const tbody    = document.getElementById('corbeille-table-body');
+    const emptyMsg = document.getElementById('corbeille-empty-msg');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!state.trash.length) { if (emptyMsg) emptyMsg.style.display = 'block'; return; }
+    if (emptyMsg) emptyMsg.style.display = 'none';
+    state.trash.forEach((item, i) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><span class="badge-info">${item.type.toUpperCase()}</span></td>
+            <td><b>${item.data?.name||'Sans nom'}</b></td>
+            <td><small>${new Date(item.date).toLocaleDateString('fr-FR')}</small></td>
+            <td><button class="btn-success btn-small" onclick="restoreFromTrash(${i})"><i data-lucide="rotate-ccw"></i> Restaurer</button></td>`;
+        tbody.appendChild(tr);
+    });
+    if (window.lucide) lucide.createIcons();
+}
+
+async function restoreFromTrash(i) {
+    const item  = state.trash[i];
+    if (!item) return;
+    const table = item.type === 'acces' ? 'access_points' : 'profiles';
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from(table).update({ is_deleted: false }).eq('id', item.data.id);
+            if (error) throw error;
+        }
+        if (item.type === 'acces') state.acces.push(item.data);
+        else state.profils.push(item.data);
+        state.trash.splice(i, 1);
+        showToast('✅ Élément restauré');
+        renderCorbeille();
+    } catch (err) { showToast('Erreur restauration : ' + err.message, 'error'); }
+}
+
+function deleteCurrentAcces()  { if (confirm('Envoyer à la corbeille ?')) _deleteToTrash('acces',  currentEditingId); }
+function deleteCurrentProfil() { if (confirm('Envoyer à la corbeille ?')) _deleteToTrash('profil', currentEditingProfilId); }
+
+async function _deleteToTrash(type, id) {
+    const list  = type === 'acces' ? state.acces : state.profils;
+    const table = type === 'acces' ? 'access_points' : 'profiles';
+    const idx   = list.findIndex(i => i.id === id);
+    if (idx === -1) return;
+    const item  = list[idx];
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from(table).update({ is_deleted: true }).eq('id', id);
+            if (error) throw error;
+        }
+        state.trash.push({ type, date: new Date().toISOString(), data: item });
+        list.splice(idx, 1);
+        showToast('🗑️ Déplacé dans la corbeille');
+        showPage(type === 'acces' ? 'page-acces' : 'page-profils');
+    } catch (err) { showToast('Erreur suppression : ' + err.message, 'error'); }
+}
+
+/* ==================================================================
+   CHAPITRE 13 : SYSTÈME & RÉGLAGES
+================================================================== */
+
+function renderSystemModules() {
+    const container = document.getElementById('system-modules-list');
+    if (!container) return;
+    container.innerHTML = '';
+    state.acces.forEach(acc => {
+        const div = document.createElement('div');
+        div.className = 'card-inner';
+        div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;';
+        div.innerHTML = `
+            <div>
+                <strong>${acc.name}</strong><br>
+                <small style="font-family:'DM Mono',monospace">IP: ${acc.ip} · Relay: ${acc.relay_id||1}</small>
+                ${acc.bt_name ? `<br><small>BT: ${acc.bt_name}</small>` : ''}
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="btn-outline btn-small" onclick="pingModule('${acc.ip}')">Ping</button>
+                <button class="btn-small" onclick="rebootModule('${acc.name}','${acc.ip}')">Reboot</button>
+            </div>`;
+        container.appendChild(div);
+    });
+}
+
+async function pingModule(ip) {
+    showToast(`📡 Ping ${ip}...`, 'info');
+    try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 3000);
+        await fetch(`http://${ip}/`, { signal: ctrl.signal, mode: 'no-cors' });
+        showToast(`✅ ${ip} répond`, 'success');
+    } catch { showToast(`❌ ${ip} injoignable`, 'error'); }
+}
+
+function rebootModule(name, ip) {
+    if (!confirm(`Redémarrer "${name}" (${ip}) ?`)) return;
+    fetch(`http://${ip}/reboot`, { mode: 'no-cors' }).catch(() => {});
+    showToast(`🔄 Reboot envoyé à ${name}`);
+}
+
+function restartApp() { if (confirm('Recharger l\'application ?')) location.reload(); }
+
+function saveAppSettings() {
+    const name = document.getElementById('setting-app-name').value;
+    const logo = document.getElementById('setting-app-logo').value;
+    if (name) { document.querySelector('.logo-text').innerHTML = name; document.title = name; }
+    if (logo) { document.body.style.backgroundImage = `url('${logo}')`; document.body.style.backgroundSize = 'cover'; }
+    showToast('✨ Apparence mise à jour');
+}
+
+function saveSupabaseConfig() {
+    const url = document.getElementById('sb-url').value.trim();
+    const key = document.getElementById('sb-key').value.trim();
+    if (!url || !key) { showToast('Remplissez les deux champs', 'error'); return; }
+    localStorage.setItem('supabase_url', url);
+    localStorage.setItem('supabase_key', key);
+    initSupabase(url, key);
+    showToast('💾 Configuration enregistrée');
+}
+
+function testCloudConnection() {
+    const url = localStorage.getItem('supabase_url');
+    const key = localStorage.getItem('supabase_key');
+    if (!url || !key) { showToast('Aucune config', 'error'); return; }
+    const client = supabase.createClient(url, key);
+    client.from('access_points').select('id').limit(1)
+        .then(({ error }) => showToast(error ? `❌ ${error.message}` : '✅ Connexion réussie !', error ? 'error' : 'success'));
+}
+
+/* ==================================================================
+   CHAPITRE 14 : TOAST
+================================================================== */
+
+function showToast(message, type = 'success') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+        document.body.appendChild(container);
+    }
+    if (!document.getElementById('toast-style')) {
+        const s = document.createElement('style');
+        s.id = 'toast-style';
+        s.textContent = '@keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:none}}';
+        document.head.appendChild(s);
+    }
+    const colors = { success:'#3ecf8e', error:'#f85149', info:'#4c9cf8' };
+    const toast   = document.createElement('div');
+    toast.style.cssText = `background:${colors[type]||colors.success};color:white;padding:11px 18px;border-radius:10px;font-size:.87rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:320px;animation:toastIn .3s cubic-bezier(.34,1.56,.64,1) both;pointer-events:auto;`;
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.cssText += 'opacity:0;transition:opacity .3s'; setTimeout(() => toast.remove(), 300); }, 3500);
+}
+
+/* ==================================================================
+   INIT
+================================================================== */
+
+window.onload = async () => {
+    console.log('🚀 Thera Connect v3');
+    if (window.lucide) lucide.createIcons();
+};
