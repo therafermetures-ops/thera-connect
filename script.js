@@ -655,7 +655,7 @@ function renderProfilsList() {
                 </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-                <button class="btn-small" onclick="event.stopPropagation();resendInvitation('${prof.email}','${prof.name}','${role}')">
+                <button class="btn-small" onclick="event.stopPropagation();resendInvitation('${prof.email}','${prof.name}','${role}','${prof.phone||''}')">
                     <i data-lucide="mail"></i> Inviter
                 </button>
                 <div class="card-arrow"><i data-lucide="chevron-right"></i></div>
@@ -666,7 +666,7 @@ function renderProfilsList() {
 }
 
 function openAddProfilForm() {
-    ['new-prof-name','new-prof-email'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['new-prof-name','new-prof-email','new-prof-phone'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     toggleDateInput();
     openModal('modal-add-profil');
 }
@@ -684,7 +684,7 @@ async function createNewProfil() {
     const expiry = document.getElementById('new-prof-expiry')?.value || null;
     if (!name || !email) { showToast('Nom et email requis', 'error'); return; }
 
-    const newProfil = { name, email, type, role: type, is_active: true, expires_at: type === 'Visiteur' ? expiry : null };
+    const newProfil = { name, email, phone, type, is_active: true, expires_at: type === 'Visiteur' ? expiry : null };
     try {
         if (supabaseClient) {
             const { data, error } = await supabaseClient.from('profiles').insert([newProfil]).select();
@@ -701,21 +701,107 @@ async function createNewProfil() {
     } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
 }
 
-async function resendInvitation(email, name, role) {
-    if (!email) { showToast('Email manquant sur ce profil', 'error'); return; }
-    await _sendInvitation(email, name, role);
-    showToast(`📧 Invitation renvoyée à ${email}`);
+/* — Invitation : choix du canal — */
+function resendInvitation(email, name, role, phone) {
+    openInvitationModal({ email, name, role, phone });
 }
 
-async function _sendInvitation(email, name, role) {
-    if (!supabaseClient) return;
-    try {
-        await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}?setup=1&role=${encodeURIComponent(role)}&name=${encodeURIComponent(name)}`
-        });
-    } catch (err) {
-        console.warn('Invitation non envoyée:', err.message);
+function openInvitationModal(profil) {
+    // Créer ou réutiliser la modale d'invitation
+    let modal = document.getElementById('modal-invitation');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-invitation';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
     }
+
+    const inviteUrl = `${window.location.origin}?setup=1&role=${encodeURIComponent(profil.role)}&name=${encodeURIComponent(profil.name)}`;
+    const msg       = `Bonjour ${profil.name}, voici votre lien d'accès Thera Connect : ${inviteUrl}`;
+    const msgEnc    = encodeURIComponent(msg);
+    const phone     = (profil.phone || '').replace(/\s/g, '');
+
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width:420px;">
+            <h3 style="margin-bottom:6px;">📨 Inviter ${profil.name}</h3>
+            <p style="color:var(--text-sub);font-size:.85rem;margin-bottom:20px;">
+                Rôle : <strong>${profil.role}</strong><br>
+                Choisissez comment envoyer le lien de connexion.
+            </p>
+
+            <!-- Lien à copier -->
+            <div style="background:var(--card-inner);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+                <code style="font-size:.75rem;font-family:'DM Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-sub);">${inviteUrl}</code>
+                <button class="btn-small" onclick="_copyInviteLink('${inviteUrl}')">Copier</button>
+            </div>
+
+            <!-- Boutons canal -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+
+                <!-- Email -->
+                ${profil.email ? `
+                <a href="mailto:${profil.email}?subject=Votre accès Thera Connect&body=${msgEnc}"
+                   style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.9rem;transition:all .2s;"
+                   onmouseover="this.style.borderColor='var(--blue)';this.style.background='rgba(76,156,248,.06)'"
+                   onmouseout="this.style.borderColor='var(--border)';this.style.background='white'">
+                    <span style="font-size:1.3rem;">📧</span>
+                    <div>
+                        <div>Envoyer par Email</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);font-weight:400">${profil.email}</div>
+                    </div>
+                </a>` : `<div style="padding:12px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.85rem;text-align:center;">Email non renseigné</div>`}
+
+                <!-- SMS -->
+                ${phone ? `
+                <a href="sms:${phone}?body=${msgEnc}"
+                   style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.9rem;transition:all .2s;"
+                   onmouseover="this.style.borderColor='var(--green)';this.style.background='rgba(62,207,142,.06)'"
+                   onmouseout="this.style.borderColor='var(--border)';this.style.background='white'">
+                    <span style="font-size:1.3rem;">💬</span>
+                    <div>
+                        <div>Envoyer par SMS</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);font-weight:400">${profil.phone}</div>
+                    </div>
+                </a>` : `<div style="padding:12px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.85rem;text-align:center;">Téléphone non renseigné — ajoutez-le dans le profil</div>`}
+
+                <!-- WhatsApp -->
+                ${phone ? `
+                <a href="https://wa.me/${phone.replace('+','')}?text=${msgEnc}" target="_blank"
+                   style="display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.9rem;transition:all .2s;"
+                   onmouseover="this.style.borderColor='#25d366';this.style.background='rgba(37,211,102,.06)'"
+                   onmouseout="this.style.borderColor='var(--border)';this.style.background='white'">
+                    <span style="font-size:1.3rem;">🟢</span>
+                    <div>
+                        <div>Envoyer par WhatsApp</div>
+                        <div style="font-size:.75rem;color:var(--text-muted);font-weight:400">${profil.phone}</div>
+                    </div>
+                </a>` : ''}
+            </div>
+
+            <button class="btn-cancel" style="width:100%;margin-top:16px;justify-content:center;" onclick="closeModal('modal-invitation')">Fermer</button>
+        </div>`;
+
+    modal.style.display = 'flex';
+
+    // Envoyer aussi l'email Supabase Auth si email présent
+    if (profil.email && supabaseClient) {
+        supabaseClient.auth.resetPasswordForEmail(profil.email, {
+            redirectTo: inviteUrl
+        }).catch(() => {});
+    }
+}
+
+function _copyInviteLink(url) {
+    navigator.clipboard?.writeText(url).then(() => showToast('✅ Lien copié !'))
+        .catch(() => {
+            const el = document.createElement('textarea');
+            el.value = url;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            el.remove();
+            showToast('✅ Lien copié !');
+        });
 }
 
 function openProfilEdit(id) {
@@ -906,7 +992,16 @@ function addHistoryEntry(user, access, action, source = 'App') {
     const limit = new Date();
     limit.setDate(limit.getDate() - 15);
     state.historique = state.historique.filter(i => new Date(i.timestamp) > limit);
-    if (supabaseClient) supabaseClient.from('command_logs').insert([{ user_name: user, access_name: access, action, source }]).catch(() => {});
+    if (supabaseClient) {
+        const acc = state.acces.find(a => a.name === access);
+        supabaseClient.from('logs').insert([{
+            portal_id: acc?.id || null,
+            action,
+            operator: user,
+            source,
+            details: `${access} — ${action}`
+        }]).catch(() => {});
+    }
 }
 
 function renderHistory() {
