@@ -1153,8 +1153,8 @@ function saveSupabaseConfig() {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) { showToast('Remplissez les deux champs', 'error'); return; }
-    localStorage.setItem('supabase_url', url);
-    localStorage.setItem('supabase_key', key);
+    localStorage.setItem('supabase_url', 'https://dekxcxlremxaynpezgmr.supabase.co')
+    localStorage.setItem('supabase_key', 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk');
     initSupabase(url, key);
     showToast('💾 Configuration enregistrée');
 }
