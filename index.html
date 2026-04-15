@@ -457,5 +457,21 @@
 
     <script src="script.js"></script>
     <script src="auth.js"></script>
+
+        <!-- BARRE NAVIGATION MOBILE BAS -->
+            <nav id="bottom-nav">
+                    <button class="bottom-nav-btn active" id="bnav-accueil" onclick="showPage('page-accueil'); setBottomNavActive('bnav-accueil')">
+                                <i data-lucide="layout-dashboard"></i>
+                                            <span>Accueil</span>
+                                                    </button>
+                                                            <button class="bottom-nav-btn" id="bnav-acces" onclick="showPage('page-acces'); setBottomNavActive('bnav-acces')">
+                                                                        <i data-lucide="door-open"></i>
+                                                                                    <span>Accès</span>
+                                                                                            </button>
+                                                                                                    <button class="bottom-nav-btn" id="bnav-profils" onclick="showPage('page-profils'); setBottomNavActive('bnav-profils')">
+                                                                                                                <i data-lucide="users"></i>
+                                                                                                                            <span>Utilisateurs</span>
+                                                                                                                                    </button>
+                                                                                                                                        </nav>
 </body>
 </html>

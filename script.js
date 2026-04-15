@@ -44,7 +44,45 @@ function initSupabase(url, key) {
     console.log('🔌 Supabase initialisé');
 }
 
-window.addEventListener('DOMContentLoaded', () => {
+
+/* ============================================================
+   BARRE NAVIGATION MOBILE BAS — hide/show au scroll
+      ============================================================ */
+      
+      function setBottomNavActive(id) {
+          document.querySelectorAll('.bottom-nav-btn').forEach(btn => btn.classList.remove('active'));
+              const el = document.getElementById(id);
+                  if (el) el.classList.add('active');
+                  }
+                  
+                  (function initBottomNavScroll() {
+                      let lastScrollY = 0;
+                          let ticking = false;
+                              const THRESHOLD = 10;
+                              
+                                  function onScroll() {
+                                          if (!ticking) {
+                                                      requestAnimationFrame(() => {
+                                                                      const nav = document.getElementById('bottom-nav');
+                                                                                      if (!nav) { ticking = false; return; }
+                                                                                                      const currentY = window.scrollY;
+                                                                                                                      if (Math.abs(currentY - lastScrollY) > THRESHOLD) {
+                                                                                                                                          if (currentY > lastScrollY) {
+                                                                                                                                                                  nav.classList.add('hidden');
+                                                                                                                                                                                      } else {
+                                                                                                                                                                                                              nav.classList.remove('hidden');
+                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                                      lastScrollY = currentY;
+                                                                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                                                                                      ticking = false;
+                                                                                                                                                                                                                                                                                                  });
+                                                                                                                                                                                                                                                                                                              ticking = true;
+                                                                                                                                                                                                                                                                                                                      }
+                                                                                                                                                                                                                                                                                                                          }
+                                                                                                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                                                                                              window.addEventListener('scroll', onScroll, { passive: true });
+                                                                                                                                                                                                                                                                                                                                  document.addEventListener('scroll', onScroll, { passive: true });
+                                                                                                                                                                                                                                                                                                                                  })();window.addEventListener('DOMContentLoaded', () => {
     const url = localStorage.getItem('supabase_url');
     const key = localStorage.getItem('supabase_key');
         if (url && key) { initSupabase(url, key); loadAllData(); }
@@ -1154,10 +1192,10 @@ function saveSupabaseConfig() {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) { showToast('Remplissez les deux champs', 'error'); return; }
-        localStorage.setItem('supabase_url', https://dekxcxlremxaynpezgmr.supabase.co);
-        localStorage.setItem('supabase_key', sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk);
-        initSupabase(url, key); loadAllData();
-    showToast('💾 Configuration enregistrée');
+                localStorage.setItem('supabase_url', url);
+                        localStorage.setItem('supabase_key', key);
+                                initSupabase(url, key); loadAllData();
+                                        showToast('💾 Configuration enregistrée');
 }
 
 function testCloudConnection() {
@@ -1204,3 +1242,34 @@ window.onload = () => {
     console.log('🚀 Thera Connect v3.1');
     if (window.lucide) lucide.createIcons();
 };
+
+
+/* ============================================================
+   BARRE NAVIGATION MOBILE BAS
+      ============================================================ */
+
+      function setBottomNavActive(id) {
+          document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+              const el = document.getElementById(id);
+                  if (el) el.classList.add('active');
+                  }
+
+                  (function() {
+                      let lastY = 0;
+                          let ticking = false;
+                              window.addEventListener('scroll', function() {
+                                      if (!ticking) {
+                                                  requestAnimationFrame(function() {
+                                                                  const nav = document.getElementById('bottom-nav');
+                                                                                  if (nav) {
+                                                                                                      const y = window.scrollY;
+                                                                                                                          if (y > lastY + 10) nav.classList.add('hidden');
+                                                                                                                                              else if (y < lastY - 5) nav.classList.remove('hidden');
+                                                                                                                                                                  lastY = y;
+                                                                                                                                                                                  }
+                                                                                                                                                                                                  ticking = false;
+                                                                                                                                                                                                              });
+                                                                                                                                                                                                                          ticking = true;
+                                                                                                                                                                                                                                  }
+                                                                                                                                                                                                                                      }, { passive: true });
+                                                                                                                                                                                                                                      })();
