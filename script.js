@@ -47,7 +47,7 @@ function initSupabase(url, key) {
 window.addEventListener('DOMContentLoaded', () => {
     const url = localStorage.getItem('supabase_url');
     const key = localStorage.getItem('supabase_key');
-    if (url && key) initSupabase(url, key);
+        if (url && key) { initSupabase(url, key); loadAllData(); }
 });
 
 async function loadAllData() {
@@ -188,6 +188,7 @@ function showPage(pageId) {
 
 function toggleSidebar() {
     document.getElementById('sidebar')?.classList.toggle('open');
+        document.getElementById('sidebar-overlay')?.classList.toggle('open');
 }
 
 function openModal(id)  { const m = document.getElementById(id); if (m) m.style.display = 'flex'; }
@@ -1153,9 +1154,9 @@ function saveSupabaseConfig() {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) { showToast('Remplissez les deux champs', 'error'); return; }
-    localStorage.setItem('supabase_url', 'https://dekxcxlremxaynpezgmr.supabase.co')
-    localStorage.setItem('supabase_key', 'sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk');
-    initSupabase(url, key);
+        localStorage.setItem('supabase_url', url);
+        localStorage.setItem('supabase_key', key);
+        initSupabase(url, key); loadAllData();
     showToast('💾 Configuration enregistrée');
 }
 

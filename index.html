@@ -10,6 +10,7 @@
 </head>
 <body>
     <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="main-layout">
 
@@ -422,7 +423,7 @@
                 <select id="new-prof-type" onchange="toggleDateInput()">
                     <option value="Administrateur">Administrateur</option>
                     <option value="Régulier">Régulier</option>
-                    <option value="Visiteur">Visiteur</option>
+                                    <option value="Visiteur" selected>Visiteur</option>
                 </select>
             </div>
             <div id="expiry-date-container" class="form-group" style="display:none;padding:10px;border:1px dashed var(--primary);border-radius:var(--radius);">
