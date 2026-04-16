@@ -85,7 +85,7 @@ function initSupabase(url, key) {
                                                                                                                                                                                                                                                                                                                                   })();window.addEventListener('DOMContentLoaded', () => {
     const url = localStorage.getItem('supabase_url');
     const key = localStorage.getItem('supabase_key');
-        if (url && key) { initSupabase(url, key); loadAllData(); }
+        initSupabase(url || 'https://dekxcxlremxaynpezgmr.supabase.co', key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRla3hjeGxyZW14YXlucGV6Z21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzMwMTQsImV4cCI6MjA5MDk0OTAxNH0.nQPQSQc4M7TVVFdlCWiqbpJ60V26a7EVS1h-RWHuEpI'); loadAllData();
 });
 
 async function loadAllData() {
