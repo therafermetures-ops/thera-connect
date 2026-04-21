@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thera Connect — Gestion Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<!-- ÉCRAN AUTH (injecté dynamiquement par auth-admin.js) -->
+
+<div class="app-shell" id="app-shell" style="display:none;">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-logo">TC</div>
+            <div>
+                <div class="brand-name">Gestion <span>Pro</span></div>
+                <div class="brand-sub">Administration</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Principal</div>
+            <button class="nav-btn active" onclick="showPage('page-dashboard')">
+                <i data-lucide="layout-dashboard"></i> <span>Tableau de bord</span>
+            </button>
+            <button class="nav-btn" onclick="showPage('page-clients')">
+                <i data-lucide="users"></i> <span>Clients</span>
+                <span class="nav-badge" id="badge-clients">0</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:16px;">GMAO</div>
+            <button class="nav-btn" onclick="showPage('page-tickets')">
+                <i data-lucide="alert-triangle"></i> <span>Tickets pannes</span>
+                <span class="nav-badge urgent" id="badge-tickets">0</span>
+            </button>
+            <button class="nav-btn" onclick="showPage('page-interventions')">
+                <i data-lucide="wrench"></i> <span>Interventions</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:16px;">Terrain</div>
+            <button class="nav-btn" onclick="showPage('page-chantiers')">
+                <i data-lucide="hard-hat"></i> <span>Chantiers</span>
+            </button>
+
+            <div class="nav-section-label" style="margin-top:16px;">Config</div>
+            <button class="nav-btn" onclick="showPage('page-settings')">
+                <i data-lucide="settings"></i> <span>Paramètres</span>
+            </button>
+        </nav>
+
+        <div class="sidebar-footer" id="sidebar-user-info"></div>
+    </aside>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="main-content" id="main-content">
+
+        <!-- ===== DASHBOARD ===== -->
+        <section id="page-dashboard" class="page active">
+            <div class="page-header">
+                <div>
+                    <h1>Tableau de bord</h1>
+                    <p class="page-sub">Vue d'ensemble de l'activité</p>
+                </div>
+                <div class="header-right">
+                    <div class="status-pill"><span class="dot-green"></span> Système connecté</div>
+                </div>
+            </div>
+
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="kpi-card" onclick="showPage('page-clients')">
+                    <div class="kpi-icon blue"><i data-lucide="users"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Clients actifs</div>
+                        <div class="kpi-value" id="kpi-clients">—</div>
+                    </div>
+                </div>
+                <div class="kpi-card" onclick="showPage('page-tickets')">
+                    <div class="kpi-icon red"><i data-lucide="alert-triangle"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Tickets ouverts</div>
+                        <div class="kpi-value" id="kpi-tickets">—</div>
+                    </div>
+                </div>
+                <div class="kpi-card" onclick="showPage('page-interventions')">
+                    <div class="kpi-icon green"><i data-lucide="wrench"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Interventions ce mois</div>
+                        <div class="kpi-value" id="kpi-interventions">—</div>
+                    </div>
+                </div>
+                <div class="kpi-card" onclick="showPage('page-chantiers')">
+                    <div class="kpi-icon orange"><i data-lucide="hard-hat"></i></div>
+                    <div class="kpi-body">
+                        <div class="kpi-label">Chantiers en cours</div>
+                        <div class="kpi-value" id="kpi-chantiers">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets récents -->
+            <div class="section-header">
+                <h2>Tickets récents</h2>
+                <button class="btn-link" onclick="showPage('page-tickets')">Voir tout →</button>
+            </div>
+            <div class="card" id="dashboard-tickets-list">
+                <div class="empty-state">Chargement...</div>
+            </div>
+
+            <!-- Chantiers en cours -->
+            <div class="section-header" style="margin-top:24px;">
+                <h2>Chantiers en cours</h2>
+                <button class="btn-link" onclick="showPage('page-chantiers')">Voir tout →</button>
+            </div>
+            <div id="dashboard-chantiers-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
+        </section>
+
+        <!-- ===== CLIENTS ===== -->
+        <section id="page-clients" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Clients</h1>
+                    <p class="page-sub">Gestion des profils et modules</p>
+                </div>
+                <button class="btn-primary" onclick="openNewClientModal()">
+                    <i data-lucide="user-plus"></i> Nouveau client
+                </button>
+            </div>
+
+            <div class="toolbar">
+                <input type="text" id="client-search" placeholder="Rechercher un client..." oninput="filterClients()" class="search-input">
+                <select id="client-filter-role" onchange="filterClients()" class="select-sm">
+                    <option value="">Tous les rôles</option>
+                    <option value="Administrateur">Admin</option>
+                    <option value="Régulier">Régulier</option>
+                    <option value="Visiteur">Visiteur</option>
+                </select>
+            </div>
+
+            <div class="card p-0">
+                <table class="pro-table" id="clients-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Rôle</th>
+                            <th>Module maintenance</th>
+                            <th>Accès</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clients-tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== TICKETS ===== -->
+        <section id="page-tickets" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Tickets de panne</h1>
+                    <p class="page-sub">Signalements reçus des clients</p>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <select id="ticket-filter-status" onchange="filterTickets()" class="select-sm">
+                        <option value="">Tous les statuts</option>
+                        <option value="nouveau">Nouveau</option>
+                        <option value="en_cours">En cours</option>
+                        <option value="resolu">Résolu</option>
+                        <option value="clos">Clos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="tickets-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+        </section>
+
+        <!-- ===== INTERVENTIONS ===== -->
+        <section id="page-interventions" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Comptes-rendus d'intervention</h1>
+                    <p class="page-sub">Historique et rapports</p>
+                </div>
+                <button class="btn-primary" onclick="openNewInterventionModal()">
+                    <i data-lucide="plus"></i> Nouvelle intervention
+                </button>
+            </div>
+            <div id="interventions-list" style="display:flex;flex-direction:column;gap:12px;"></div>
+        </section>
+
+        <!-- ===== CHANTIERS ===== -->
+        <section id="page-chantiers" class="page">
+            <div class="page-header">
+                <div>
+                    <h1>Chantiers</h1>
+                    <p class="page-sub">Suivi interne — données confidentielles</p>
+                </div>
+                <button class="btn-primary" onclick="openNewChantierModal()">
+                    <i data-lucide="plus"></i> Nouveau chantier
+                </button>
+            </div>
+
+            <div class="toolbar">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button class="chip active" onclick="filterChantiers('all')">Tous</button>
+                    <button class="chip" onclick="filterChantiers('planifie')">Planifiés</button>
+                    <button class="chip" onclick="filterChantiers('en_cours')">En cours</button>
+                    <button class="chip" onclick="filterChantiers('termine')">Terminés</button>
+                    <button class="chip" onclick="filterChantiers('facture')">Facturés</button>
+                </div>
+            </div>
+
+            <div id="chantiers-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-top:16px;"></div>
+        </section>
+
+        <!-- ===== PARAMÈTRES ===== -->
+        <section id="page-settings" class="page">
+            <div class="page-header">
+                <h1>Paramètres</h1>
+            </div>
+
+            <div class="card" style="max-width:560px;">
+                <h3 style="margin-bottom:16px;">Connexion Supabase</h3>
+                <div class="form-group">
+                    <label>URL du projet</label>
+                    <input type="password" id="admin-sb-url" placeholder="https://xyz.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label>Clé API (Anon Key)</label>
+                    <input type="password" id="admin-sb-key" placeholder="Votre clé">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn-primary" onclick="saveAdminConfig()">Enregistrer</button>
+                    <button class="btn-outline" onclick="testAdminConnection()">Tester</button>
+                </div>
+            </div>
+
+            <div class="card" style="max-width:560px;margin-top:16px;">
+                <h3 style="margin-bottom:16px;">Notifications email (Edge Functions)</h3>
+                <p style="color:var(--text-sub);font-size:.85rem;margin-bottom:12px;">
+                    Configurez la Edge Function <code>notify-ticket</code> dans Supabase pour l'envoi automatique d'emails à la réception d'un ticket.
+                </p>
+                <button class="btn-outline" onclick="window.open('https://supabase.com/dashboard/project/_/functions','_blank')">
+                    <i data-lucide="external-link"></i> Ouvrir Edge Functions
+                </button>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<!-- ===== MODALES ===== -->
+
+<!-- Ticket / Intervention detail -->
+<div id="modal-ticket" class="modal">
+    <div class="modal-content" style="max-width:620px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 id="modal-ticket-title">Ticket</h3>
+            <button class="btn-icon" onclick="closeModal('modal-ticket')">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div id="modal-ticket-body"></div>
+    </div>
+</div>
+
+<!-- Nouveau chantier -->
+<div id="modal-chantier" class="modal">
+    <div class="modal-content" style="max-width:580px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3 id="modal-chantier-title">Nouveau chantier</h3>
+            <button class="btn-icon" onclick="closeModal('modal-chantier')"><i data-lucide="x"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nom du chantier *</label>
+            <input type="text" id="ch-name" placeholder="Ex: Installation portail A6 — Lyon">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Client</label>
+                <input type="text" id="ch-client" placeholder="Nom du client">
+            </div>
+            <div class="form-group">
+                <label>Responsable</label>
+                <input type="text" id="ch-assigned" placeholder="Technicien">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Adresse</label>
+            <input type="text" id="ch-address" placeholder="123 rue de la Paix, Lyon">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Statut</label>
+                <select id="ch-status">
+                    <option value="planifie">Planifié</option>
+                    <option value="en_cours" selected>En cours</option>
+                    <option value="termine">Terminé</option>
+                    <option value="facture">Facturé</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Début</label>
+                <input type="date" id="ch-start">
+            </div>
+            <div class="form-group">
+                <label>Fin prévue</label>
+                <input type="date" id="ch-end">
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="form-group">
+                <label>Budget estimé (€)</label>
+                <input type="number" id="ch-budget-est" placeholder="0.00" step="0.01">
+            </div>
+            <div class="form-group">
+                <label>Budget réel (€)</label>
+                <input type="number" id="ch-budget-act" placeholder="0.00" step="0.01">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Notes internes (confidentielles)</label>
+            <textarea id="ch-notes" rows="3" placeholder="Informations internes..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn-outline" onclick="closeModal('modal-chantier')">Annuler</button>
+            <button class="btn-primary" onclick="saveChantier()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- Nouveau client -->
+<div id="modal-client" class="modal">
+    <div class="modal-content" style="max-width:500px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h3>Nouveau client</h3>
+            <button class="btn-icon" onclick="closeModal('modal-client')"><i data-lucide="x"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nom complet *</label>
+            <input type="text" id="cl-name">
+        </div>
+        <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="cl-email">
+        </div>
+        <div class="form-group">
+            <label>Téléphone</label>
+            <input type="tel" id="cl-phone" placeholder="+33 6 12 34 56 78">
+        </div>
+        <div class="form-group">
+            <label>Rôle</label>
+            <select id="cl-type">
+                <option value="Régulier">Régulier</option>
+                <option value="Administrateur">Administrateur</option>
+                <option value="Visiteur">Visiteur</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button class="btn-outline" onclick="closeModal('modal-client')">Annuler</button>
+            <button class="btn-primary" onclick="saveNewClient()">Créer & Inviter</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="script-admin.js"></script>
+<script src="auth-admin.js"></script>
+</body>
+</html>
