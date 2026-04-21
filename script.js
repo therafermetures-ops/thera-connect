@@ -1,6 +1,5 @@
 /* ==================================================================
-   THERA CONNECT — script.js v3.1 (Clean & Fixed)
-   Toutes les corrections appliquées · Testé · Sans bugs connus
+   THERA CONNECT — script.js v4.0
 ================================================================== */
 
 /* ==================================================================
@@ -28,6 +27,9 @@ let bluetoothCharac  = null;
 const BT_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb';
 const BT_CHAR_UUID    = '0000ffe1-0000-1000-8000-00805f9b34fb';
 
+// Navigation
+let pageHistory = ['page-accueil'];
+
 // Planning calendrier
 let planningAccId    = null;
 let planningSlots    = {};
@@ -44,50 +46,48 @@ function initSupabase(url, key) {
     console.log('🔌 Supabase initialisé');
 }
 
+/* ==================================================================
+   BARRE NAVIGATION MOBILE — hide/show au scroll
+================================================================== */
+function setBottomNavActive(id) {
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+}
 
-/* ============================================================
-   BARRE NAVIGATION MOBILE BAS — hide/show au scroll
-      ============================================================ */
-      
-      function setBottomNavActive(id) {
-          document.querySelectorAll('.bottom-nav-btn').forEach(btn => btn.classList.remove('active'));
-              const el = document.getElementById(id);
-                  if (el) el.classList.add('active');
-                  }
-                  
-                  (function initBottomNavScroll() {
-                      let lastScrollY = 0;
-                          let ticking = false;
-                              const THRESHOLD = 10;
-                              
-                                  function onScroll() {
-                                          if (!ticking) {
-                                                      requestAnimationFrame(() => {
-                                                                      const nav = document.getElementById('bottom-nav');
-                                                                                      if (!nav) { ticking = false; return; }
-                                                                                                      const currentY = window.scrollY;
-                                                                                                                      if (Math.abs(currentY - lastScrollY) > THRESHOLD) {
-                                                                                                                                          if (currentY > lastScrollY) {
-                                                                                                                                                                  nav.classList.add('hidden');
-                                                                                                                                                                                      } else {
-                                                                                                                                                                                                              nav.classList.remove('hidden');
-                                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                                                      lastScrollY = currentY;
-                                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                                                                                      ticking = false;
-                                                                                                                                                                                                                                                                                                  });
-                                                                                                                                                                                                                                                                                                              ticking = true;
-                                                                                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                                                                                                              window.addEventListener('scroll', onScroll, { passive: true });
-                                                                                                                                                                                                                                                                                                                                  document.addEventListener('scroll', onScroll, { passive: true });
-                                                                                                                                                                                                                                                                                                                                  })();window.addEventListener('DOMContentLoaded', () => {
+(function initBottomNavScroll() {
+    let lastY = 0, ticking = false;
+    window.addEventListener('scroll', function () {
+        if (!ticking) {
+            requestAnimationFrame(function () {
+                const nav = document.getElementById('bottom-nav');
+                if (nav) {
+                    const y = window.scrollY;
+                    if (y > lastY + 10)      nav.classList.add('hidden');
+                    else if (y < lastY - 5)  nav.classList.remove('hidden');
+                    lastY = y;
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+})();
+
+/* ==================================================================
+   INIT AU CHARGEMENT
+================================================================== */
+window.addEventListener('DOMContentLoaded', () => {
     const url = localStorage.getItem('supabase_url');
     const key = localStorage.getItem('supabase_key');
-        initSupabase(url || 'https://dekxcxlremxaynpezgmr.supabase.co', key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRla3hjeGxyZW14YXlucGV6Z21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzMwMTQsImV4cCI6MjA5MDk0OTAxNH0.nQPQSQc4M7TVVFdlCWiqbpJ60V26a7EVS1h-RWHuEpI'); loadAllData();
+    initSupabase(url || 'https://dekxcxlremxaynpezgmr.supabase.co', key || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRla3hjeGxyZW14YXlucGV6Z21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzMwMTQsImV4cCI6MjA5MDk0OTAxNH0.nQPQSQc4M7TVVFdlCWiqbpJ60V26a7EVS1h-RWHuEpI');
+    loadAllData();
+    startCloudHealthPolling();
 });
 
+/* ==================================================================
+   CHARGEMENT DONNÉES
+================================================================== */
 async function loadAllData() {
     if (!supabaseClient) return;
     try {
@@ -112,9 +112,30 @@ async function loadAllData() {
         const { data: rules } = await supabaseClient.from('alert_rules').select('*').catch(() => ({ data: [] }));
         if (rules) state.alertRules = rules;
 
-        // Mettre à jour les stats
+        // Logs 15 jours glissants
+        const since15d = new Date(Date.now() - 15 * 86400000).toISOString();
+        const { data: logsData } = await supabaseClient.from('logs')
+            .select('*').gte('created_at', since15d)
+            .order('created_at', { ascending: false }).limit(300)
+            .catch(() => ({ data: [] }));
+        if (logsData) {
+            state.historique = logsData.map(l => ({
+                id: l.id, timestamp: l.created_at,
+                user: l.operator, access: l.details,
+                action: l.action, source: l.source
+            }));
+        }
+
+        // Stats dashboard
         const statAcces = document.getElementById('stat-acces');
         if (statAcces) statAcces.textContent = state.acces.length;
+        const statAlertes = document.getElementById('stat-alertes');
+        if (statAlertes) {
+            const since24h = new Date(Date.now() - 86400000);
+            statAlertes.textContent = state.alertLogs.filter(l => new Date(l.timestamp) > since24h).length;
+        }
+        _updateAlertBadge();
+        startRealtimeFeatures();
 
         console.log('✅ Données chargées :', state.acces.length, 'accès,', state.profils.length, 'profils');
     } catch (err) {
@@ -130,7 +151,6 @@ function applyPermissions(userRole, expiryDate = null) {
     const navButtons  = document.querySelectorAll('.nav-btn');
     const contentArea = document.querySelector('.content-area');
 
-    // Réinitialisation
     navButtons.forEach(btn => btn.classList.remove('admin-only'));
     document.querySelectorAll('.expiry-notice').forEach(el => el.remove());
 
@@ -151,12 +171,17 @@ function applyPermissions(userRole, expiryDate = null) {
     } else if (role === 'visiteur') {
         _applyRestrictedView(navButtons);
         if (expiryDate) {
-            const exp    = new Date(expiryDate);
-            const diff   = Math.round((exp - Date.now()) / 3600000);
-            const notice = document.createElement('div');
-            notice.className = 'expiry-notice';
-            notice.innerHTML = `⏱️ Accès temporaire · Expire le <strong>${exp.toLocaleString('fr-FR')}</strong>${diff > 0 && diff < 72 ? ` (dans ${diff}h)` : ''}`;
-            contentArea.insertAdjacentElement('afterbegin', notice);
+            const exp  = new Date(expiryDate);
+            const diff = Math.round((exp - Date.now()) / 3600000);
+            let notice = document.getElementById('expiry-notice-permanent');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'expiry-notice-permanent';
+                notice.className = 'expiry-notice';
+                notice.style.cssText = 'position:sticky;top:0;z-index:500;margin:-36px -40px 24px;border-radius:0;';
+                contentArea.insertAdjacentElement('afterbegin', notice);
+            }
+            notice.innerHTML = `⏱️ Accès temporaire · Expire le <strong>${exp.toLocaleString('fr-FR')}</strong>${diff > 0 && diff < 72 ? ` · <span style="color:var(--red)">dans ${diff}h</span>` : diff <= 0 ? ' · <span style="color:var(--red)">EXPIRÉ</span>' : ''}`;
         }
     }
 }
@@ -165,6 +190,13 @@ function _applyRestrictedView(navButtons) {
     navButtons.forEach(btn => {
         if (!(btn.getAttribute('onclick') || '').includes('page-accueil'))
             btn.classList.add('admin-only');
+    });
+    document.querySelector('.main-layout')?.classList.add('sidebar-hidden');
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    if (mobileBtn) mobileBtn.style.display = 'none';
+    ['bnav-acces','bnav-profils'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
     });
 }
 
@@ -191,15 +223,30 @@ function isAdmin() {
 /* ==================================================================
    NAVIGATION
 ================================================================== */
-function showPage(pageId) {
+const _bnavMap = {
+    'page-accueil': 'bnav-accueil',
+    'page-acces':   'bnav-acces',
+    'page-profils': 'bnav-profils'
+};
+
+function showPage(pageId, _addHistory = true) {
+    if (_addHistory && pageHistory[pageHistory.length - 1] !== pageId)
+        pageHistory.push(pageId);
+
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(pageId);
     if (target) target.classList.add('active');
 
+    // Sync sidebar
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
         if ((btn.getAttribute('onclick') || '').includes(pageId)) btn.classList.add('active');
     });
+
+    // Sync bottom-nav
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+    const bnavId = _bnavMap[pageId];
+    if (bnavId) { const el = document.getElementById(bnavId); if (el) el.classList.add('active'); }
 
     switch (pageId) {
         case 'page-accueil':    renderAccueil();       break;
@@ -210,23 +257,30 @@ function showPage(pageId) {
         case 'page-alerts':     renderAlertsSetup();   break;
         case 'page-corbeille':  renderCorbeille();     break;
         case 'page-systeme':    renderSystemModules(); break;
-        case 'page-reglages':
+        case 'page-reglages': {
             const sbUrl = document.getElementById('sb-url');
             const sbKey = document.getElementById('sb-key');
             if (sbUrl) sbUrl.value = localStorage.getItem('supabase_url') || '';
             if (sbKey) sbKey.value = localStorage.getItem('supabase_key') || '';
             break;
+        }
     }
 
     document.getElementById('sidebar')?.classList.remove('open');
+    document.getElementById('sidebar-overlay')?.classList.remove('open');
     const btnBack = document.getElementById('btn-back');
-    if (btnBack) btnBack.style.display = pageId === 'page-accueil' ? 'none' : 'block';
+    if (btnBack) btnBack.style.display = pageHistory.length > 1 ? 'block' : 'none';
     if (window.lucide) lucide.createIcons();
+}
+
+function goBack() {
+    if (pageHistory.length > 1) pageHistory.pop();
+    showPage(pageHistory[pageHistory.length - 1], false);
 }
 
 function toggleSidebar() {
     document.getElementById('sidebar')?.classList.toggle('open');
-        document.getElementById('sidebar-overlay')?.classList.toggle('open');
+    document.getElementById('sidebar-overlay')?.classList.toggle('open');
 }
 
 function openModal(id)  { const m = document.getElementById(id); if (m) m.style.display = 'flex'; }
@@ -269,14 +323,12 @@ function _renderUserDashboard(profil) {
         card.className = 'card access-tile animate-in';
         card.style.borderLeftColor = allowed ? 'var(--green)' : 'var(--border)';
         card.innerHTML = `
-            <div class="tile-header">
-                <div class="tile-info">
-                    <h4>${acc.name}</h4>
-                    <span style="font-size:.78rem;color:${allowed ? 'var(--green)' : 'var(--text-muted)'}">
-                        ${allowed ? '✅ Accès autorisé' : '⏰ Hors plage horaire'}
-                    </span>
-                </div>
-            </div>
+            <div class="tile-header"><div class="tile-info">
+                <h4>${acc.name}</h4>
+                <span style="font-size:.78rem;color:${allowed ? 'var(--green)' : 'var(--text-muted)'}">
+                    ${allowed ? '✅ Accès autorisé' : '⏰ Hors plage horaire'}
+                </span>
+            </div></div>
             <div class="tile-body"><div class="ip-badge"><i data-lucide="network"></i> ${acc.ip}</div></div>
             <div class="tile-actions">
                 ${allowed
@@ -310,12 +362,26 @@ function renderFavorites() {
         return;
     }
     favs.forEach(acc => {
+        const st = acc.status === 'defaut' ? 'defaut'
+                 : acc.status === 'ouvert' ? 'ouvert'
+                 : acc.status === 'ferme'  ? 'ferme'
+                 : (_isAccessAllowedNow(acc) ? 'ouvert' : 'ferme');
+        const cfg = {
+            defaut: { label: '⚠️ DÉFAUT',  color: 'var(--orange)' },
+            ouvert: { label: '🟢 OUVERT',  color: 'var(--green)'  },
+            ferme:  { label: '🔴 FERMÉ',   color: 'var(--red)'    }
+        }[st];
+        const onlineTag = acc._online === false
+            ? '<span style="font-size:.72rem;color:var(--red);margin-left:6px;">● hors ligne</span>'
+            : acc._online === true
+            ? '<span style="font-size:.72rem;color:var(--green);margin-left:6px;">● en ligne</span>' : '';
         const card = document.createElement('div');
         card.className = 'card access-tile animate-in';
+        card.style.borderLeftColor = cfg.color;
         card.innerHTML = `
             <div class="tile-header"><div class="tile-info">
-                <h4>${acc.name}</h4>
-                <span class="status-indicator online">Opérationnel</span>
+                <h4>${acc.name} ${onlineTag}</h4>
+                <span style="font-size:.78rem;font-weight:700;color:${cfg.color}">${cfg.label}</span>
             </div></div>
             <div class="tile-body"><div class="ip-badge"><i data-lucide="network"></i> ${acc.ip}</div></div>
             <div class="tile-actions">
@@ -329,31 +395,160 @@ function renderFavorites() {
 }
 
 /* ==================================================================
-   COMMANDES ESP32 — HTTP + BLUETOOTH
+   COMMANDES ESP32 — Modale + Slider de confirmation
 ================================================================== */
 function openControlModal(accId, accName) {
     currentTargetId = accId;
     const el = document.getElementById('modal-title-target');
     if (el) el.textContent = accName;
+    // Réinitialiser l'état de la modale
+    const btns = document.getElementById('modal-btns');
+    const wrap = document.getElementById('modal-slider-wrap');
+    if (btns) btns.style.display = 'flex';
+    if (wrap) wrap.style.display = 'none';
+    _resetSlider();
     openModal('modal-control');
 }
 
-async function confirmCommand(action) {
+function startOpenSlider() {
+    document.getElementById('modal-btns').style.display = 'none';
+    document.getElementById('modal-slider-wrap').style.display = 'block';
+    _resetSlider();
+    _initSlider();
+}
+
+function _resetSlider() {
+    const thumb = document.getElementById('slider-thumb');
+    const fill  = document.getElementById('slider-fill');
+    const label = document.getElementById('slider-label');
+    if (!thumb) return;
+    thumb.style.transition = '';
+    fill.style.transition  = '';
+    thumb.style.transform  = 'translateX(0)';
+    fill.style.width       = '0px';
+    fill.style.background  = 'var(--primary)';
+    if (label) { label.textContent = 'Glissez pour ouvrir →'; label.style.opacity = '1'; label.style.color = ''; }
+}
+
+function _initSlider() {
+    const track = document.getElementById('slider-track');
+    const thumb = document.getElementById('slider-thumb');
+    const fill  = document.getElementById('slider-fill');
+    const label = document.getElementById('slider-label');
+    if (!track || !thumb) return;
+
+    let dragging = false;
+    let startX   = 0;
+    let completed = false;
+    const maxX   = track.offsetWidth - thumb.offsetWidth - 4;
+
+    function setPos(raw) {
+        if (completed) return;
+        const x = Math.max(0, Math.min(raw, maxX));
+        thumb.style.transform = `translateX(${x}px)`;
+        fill.style.width      = `${x + thumb.offsetWidth / 2}px`;
+        const pct = x / maxX;
+        if (label) label.style.opacity = Math.max(0, 1 - pct * 2);
+        if (pct >= 0.9) complete();
+    }
+
+    function complete() {
+        completed = true;
+        thumb.style.transform = `translateX(${maxX}px)`;
+        fill.style.width      = '100%';
+        fill.style.background = 'var(--green)';
+        if (label) { label.textContent = 'Confirmé ✅'; label.style.opacity = '1'; label.style.color = 'white'; }
+        navigator.vibrate?.(60);
+        cleanup();
+        setTimeout(() => {
+            closeModal('modal-control');
+            _executeCommand('OUVRIR');
+        }, 450);
+    }
+
+    function reset() {
+        thumb.style.transition = 'transform 0.4s var(--ease)';
+        fill.style.transition  = 'width 0.4s var(--ease)';
+        thumb.style.transform  = 'translateX(0)';
+        fill.style.width       = '0px';
+        if (label) { label.style.opacity = '1'; }
+        setTimeout(() => { thumb.style.transition = ''; fill.style.transition = ''; }, 420);
+    }
+
+    function onMove(e) {
+        if (!dragging) return;
+        e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        setPos(clientX - startX);
+    }
+
+    function onUp() {
+        if (!dragging) return;
+        dragging = false;
+        if (!completed) {
+            const x = parseFloat(thumb.style.transform.replace('translateX(', '')) || 0;
+            if (x / maxX < 0.9) reset();
+        }
+        cleanup();
+    }
+
+    function onDown(e) {
+        dragging = true;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const cur     = parseFloat(thumb.style.transform.replace('translateX(', '')) || 0;
+        startX = clientX - cur;
+        thumb.style.transition = '';
+        fill.style.transition  = '';
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup',   onUp);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('touchend',  onUp);
+    }
+
+    function cleanup() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend',  onUp);
+    }
+
+    thumb.addEventListener('mousedown',  onDown);
+    thumb.addEventListener('touchstart', onDown, { passive: true });
+}
+
+async function _executeCommand(action) {
     const acc = state.acces.find(a => a.id === currentTargetId);
     if (!acc) return;
-    closeModal('modal-control');
 
     const httpOk = await _sendHttpCommand(acc, action);
     if (!httpOk) {
         showToast('WiFi indisponible — tentative Bluetooth...', 'info');
         const btOk = await _sendBluetoothCommand(acc, action);
-        if (!btOk) { showToast(`Commande ${action} échouée`, 'error'); return; }
+        if (!btOk) {
+            navigator.vibrate?.([200, 100, 200]);
+            showToast(`Commande ${action} échouée`, 'error');
+            return;
+        }
     }
+
+    const newStatus = action === 'OUVRIR' ? 'ouvert' : 'ferme';
+    if (supabaseClient) {
+        await supabaseClient.from('access_points').update({ status: newStatus }).eq('id', acc.id).catch(() => {});
+    }
+    const idx = state.acces.findIndex(a => a.id === acc.id);
+    if (idx !== -1) state.acces[idx].status = newStatus;
 
     const profil = typeof getCurrentProfil === 'function' ? getCurrentProfil() : null;
     addHistoryEntry(profil?.name || 'Système', acc.name, action, httpOk ? 'WiFi' : 'Bluetooth');
+    navigator.vibrate?.(60);
     showToast(`✅ ${acc.name} — ${action}`, 'success');
     renderAccueil();
+}
+
+async function confirmCommand(action) {
+    // Appelé uniquement pour FERMER (OUVRIR passe par le slider)
+    closeModal('modal-control');
+    await _executeCommand(action);
 }
 
 async function _sendHttpCommand(acc, action) {
@@ -376,8 +571,8 @@ async function _sendBluetoothCommand(acc, action) {
                 filters: [{ namePrefix: acc.bt_name || 'KC868' }],
                 optionalServices: [BT_SERVICE_UUID]
             });
-            const server   = await bluetoothDevice.gatt.connect();
-            const service  = await server.getPrimaryService(BT_SERVICE_UUID);
+            const server    = await bluetoothDevice.gatt.connect();
+            const service   = await server.getPrimaryService(BT_SERVICE_UUID);
             bluetoothCharac = await service.getCharacteristic(BT_CHAR_UUID);
         }
         const cmd = action === 'OUVRIR'
@@ -448,7 +643,6 @@ function _calAddSlot(di, h) {
 }
 
 function _calDeleteSlot(di, i) { planningSlots[di].splice(i,1); _renderCalendar(); }
-
 function _calDragStart(e, di, i) { planningDragData = { di, i }; e.dataTransfer.effectAllowed = 'move'; }
 
 function _calDrop(e, targetDay) {
@@ -457,9 +651,9 @@ function _calDrop(e, targetDay) {
     const { di: src, i } = planningDragData;
     const slot = planningSlots[src]?.[i];
     if (!slot) return;
-    const rect  = e.currentTarget.getBoundingClientRect();
-    const newH  = Math.max(0, Math.min(22, Math.floor((e.clientY - rect.top) / SLOT_H)));
-    const dur   = _slotDuration(slot);
+    const rect = e.currentTarget.getBoundingClientRect();
+    const newH = Math.max(0, Math.min(22, Math.floor((e.clientY - rect.top) / SLOT_H)));
+    const dur  = _slotDuration(slot);
     planningSlots[src].splice(i, 1);
     if (!planningSlots[targetDay]) planningSlots[targetDay] = [];
     planningSlots[targetDay].push({ start:`${String(newH).padStart(2,'0')}:00`, end:`${String(Math.min(newH+dur,24)).padStart(2,'0')}:00` });
@@ -469,12 +663,12 @@ function _calDrop(e, targetDay) {
 
 function _calResizeStart(e, di, i) {
     e.preventDefault(); e.stopPropagation();
-    const startY   = e.clientY;
-    const slot     = planningSlots[di][i];
-    const [eh, em] = slot.end.split(':').map(Number);
-    const startEnd = eh + em / 60;
-    const [sh]     = slot.start.split(':').map(Number);
-    const onMove   = ev => {
+    const startY    = e.clientY;
+    const slot      = planningSlots[di][i];
+    const [eh, em]  = slot.end.split(':').map(Number);
+    const startEnd  = eh + em / 60;
+    const [sh]      = slot.start.split(':').map(Number);
+    const onMove    = ev => {
         const newEnd = Math.max(sh + 0.5, Math.min(24, startEnd + (ev.clientY - startY) / SLOT_H));
         const h = Math.floor(newEnd);
         const m = Math.round((newEnd - h) * 60 / 15) * 15;
@@ -526,6 +720,8 @@ function renderAccesList() {
         return;
     }
     state.acces.forEach(acc => {
+        const onlineDot = acc._online === true  ? '<span style="color:var(--green);font-size:.7rem">●</span>'
+                        : acc._online === false ? '<span style="color:var(--red);font-size:.7rem">●</span>' : '';
         const card = document.createElement('div');
         card.className = 'card item-card animate-in';
         card.onclick = () => openAccesEdit(acc.id);
@@ -533,11 +729,14 @@ function renderAccesList() {
             <div class="main-info">
                 <div class="avatar"><i data-lucide="cpu"></i></div>
                 <div>
-                    <div style="font-weight:700">${acc.name}</div>
+                    <div style="font-weight:700">${acc.name} ${onlineDot}</div>
                     <div class="ip-badge"><i data-lucide="network"></i>${acc.ip || '—'}</div>
                 </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
+                <button class="btn-small" onclick="event.stopPropagation();toggleFavorite('${acc.id}')"
+                    title="${acc.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"
+                    style="color:${acc.is_favorite ? 'var(--orange)' : 'var(--text-muted)'};">★</button>
                 <button class="btn-small" onclick="event.stopPropagation();openPlanningEditor('${acc.id}')">
                     <i data-lucide="calendar"></i>
                 </button>
@@ -548,19 +747,31 @@ function renderAccesList() {
     if (window.lucide) lucide.createIcons();
 }
 
+async function toggleFavorite(id) {
+    const acc = state.acces.find(a => a.id === id);
+    if (!acc) return;
+    const newVal = !acc.is_favorite;
+    if (supabaseClient) {
+        const { error } = await supabaseClient.from('access_points').update({ is_favorite: newVal }).eq('id', id);
+        if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+    }
+    acc.is_favorite = newVal;
+    showToast(newVal ? '★ Ajouté aux favoris' : '☆ Retiré des favoris');
+    renderAccesList();
+}
+
 function openAccesEdit(id) {
     currentEditingId = id;
     const acc = state.acces.find(a => a.id === id);
     if (!acc) return;
     document.getElementById('acces-list-view').style.display = 'none';
     document.getElementById('acces-edit-view').style.display = 'block';
-    document.getElementById('edit-acc-name').value = acc.name  || '';
-    document.getElementById('edit-acc-ip').value   = acc.ip    || '';
+    document.getElementById('edit-acc-name').value = acc.name || '';
+    document.getElementById('edit-acc-ip').value   = acc.ip   || '';
     const relayEl = document.getElementById('edit-acc-relay');
-    const btEl    = document.getElementById('edit-acc-bt');
     if (relayEl) relayEl.value = acc.relay_id || '1';
-    if (btEl)    btEl.value   = acc.bt_name  || '';
     toggleEditMode(false);
+    renderESP32StatusPanel(acc);
 }
 
 function closeAccesEdit() {
@@ -569,7 +780,7 @@ function closeAccesEdit() {
 }
 
 function toggleEditMode(isEditable) {
-    ['edit-acc-name','edit-acc-ip','edit-acc-relay','edit-acc-bt'].forEach(id => {
+    ['edit-acc-name','edit-acc-ip','edit-acc-relay'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.disabled = !isEditable;
     });
@@ -581,8 +792,7 @@ async function saveAccesModifications() {
     const updates = {
         name:     document.getElementById('edit-acc-name').value.trim(),
         ip:       document.getElementById('edit-acc-ip').value.trim(),
-        relay_id: parseInt(document.getElementById('edit-acc-relay')?.value || 1),
-        bt_name:  document.getElementById('edit-acc-bt')?.value.trim() || ''
+        relay_id: parseInt(document.getElementById('edit-acc-relay')?.value || 1)
     };
     try {
         if (supabaseClient) {
@@ -604,24 +814,112 @@ function openAddAccesForm() {
     openModal('modal-add-acces');
 }
 
-async function createNewAcces() {
+function _validateIP(ip) {
+    return /^(\d{1,3}\.){3}\d{1,3}$/.test(ip) &&
+        ip.split('.').every(n => parseInt(n) <= 255);
+}
+
+function createNewAcces() {
     const name = document.getElementById('new-acc-name').value.trim();
     const ip   = document.getElementById('new-acc-ip').value.trim();
-    if (!name || !ip) { showToast('Remplissez tous les champs', 'error'); return; }
-    if (!supabaseClient) { showToast('Supabase non connecté', 'error'); return; }
-    try {
-        const entry = { name, ip, relay_id: 1, is_favorite: false, is_deleted: false, planning: { slots: {} } };
-        const { data, error } = await supabaseClient.from('access_points').insert([entry]).select();
-        if (error) throw error;
-        state.acces.push(data[0]);
-        closeModal('modal-add-acces');
-        showToast('✅ Accès créé');
-        renderAccesList();
-    } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
+    if (!name || !ip)     { showToast('Remplissez tous les champs', 'error'); return; }
+    if (!_validateIP(ip)) { showToast('Format IP invalide (ex: 192.168.1.10)', 'error'); return; }
+    if (!supabaseClient)  { showToast('Supabase non connecté', 'error'); return; }
+
+    const entry = { name, ip, relay_id: 1, is_favorite: false, is_deleted: false, planning: { slots: {} } };
+    showToast('Création en cours...', 'info');
+
+    supabaseClient.from('access_points').insert([entry]).select()
+        .then(({ data, error }) => {
+            if (error) { showToast('Erreur : ' + error.message, 'error'); return; }
+            state.acces.push(data[0]);
+            closeModal('modal-add-acces');
+            showToast('✅ Accès créé');
+            renderAccesList();
+        })
+        .catch(err => showToast('Erreur : ' + err.message, 'error'));
 }
 
 function deleteCurrentAcces() {
     if (confirm('Envoyer à la corbeille ?')) _deleteToTrash('acces', currentEditingId);
+}
+
+/* ==================================================================
+   CONNEXION ESP32
+================================================================== */
+function renderESP32StatusPanel(acc) {
+    const panel = document.getElementById('esp32-status-panel');
+    if (!panel) return;
+    panel.innerHTML = `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+            <div class="esp32-badge" id="esp-badge-wifi">📶 WiFi</div>
+            <div class="esp32-badge" id="esp-badge-ip">🌐 IP</div>
+            <div class="esp32-badge" id="esp-badge-relay">⚡ Relais</div>
+        </div>
+        <div id="esp32-info-line" style="font-size:.78rem;color:var(--text-muted);min-height:18px;"></div>`;
+    if (acc.ip) pingCurrentAcces();
+}
+
+async function pingCurrentAcces() {
+    const acc = state.acces.find(a => a.id === currentEditingId);
+    if (!acc?.ip) return;
+
+    _setESPBadge('wifi',  'pending', '📶 …');
+    _setESPBadge('ip',    'pending', '🌐 …');
+    _setESPBadge('relay', 'pending', '⚡ …');
+
+    const infoLine = document.getElementById('esp32-info-line');
+    if (infoLine) infoLine.textContent = `Ping ${acc.ip}...`;
+
+    try {
+        const ctrl = new AbortController();
+        setTimeout(() => ctrl.abort(), 4000);
+        const res = await fetch(`http://${acc.ip}/status`, { signal: ctrl.signal, mode: 'cors' }).catch(() => null);
+
+        if (!res || !res.ok) throw new Error('hors ligne');
+        const data = await res.json().catch(() => null);
+
+        _setESPBadge('wifi',  'ok', '📶 WiFi ✅');
+        _setESPBadge('ip',    'ok', `🌐 ${acc.ip} ✅`);
+        _setESPBadge('relay', 'ok', `⚡ ${data?.relays?.[0]?.state || 'ok'}`);
+        if (infoLine) infoLine.textContent = `RSSI : ${data?.rssi ?? '—'} dBm · Réponse OK`;
+
+        const idx = state.acces.findIndex(a => a.id === currentEditingId);
+        if (idx !== -1) state.acces[idx]._online = true;
+    } catch {
+        _setESPBadge('wifi',  'err', '📶 ❌');
+        _setESPBadge('ip',    'err', '🌐 ❌');
+        _setESPBadge('relay', 'err', '⚡ —');
+        if (infoLine) infoLine.textContent = 'Hors ligne ou IP incorrecte';
+        const idx = state.acces.findIndex(a => a.id === currentEditingId);
+        if (idx !== -1) state.acces[idx]._online = false;
+    }
+}
+
+function _setESPBadge(name, status, label) {
+    const el = document.getElementById(`esp-badge-${name}`);
+    if (!el) return;
+    el.textContent = label;
+    el.className   = 'esp32-badge esp32-badge--' + status;
+}
+
+async function scanBLE() {
+    if (!navigator.bluetooth) { showToast('Bluetooth non supporté sur ce navigateur', 'error'); return; }
+    const resultsEl = document.getElementById('ble-scan-results');
+    if (resultsEl) { resultsEl.style.display = 'block'; resultsEl.innerHTML = '<em style="font-size:.82rem;color:var(--text-muted)">Scan en cours…</em>'; }
+    try {
+        const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [BT_SERVICE_UUID]
+        });
+        if (resultsEl) resultsEl.innerHTML = `
+            <div class="esp32-ble-device">
+                <span>🔵 <strong>${device.name || 'Appareil sans nom'}</strong></span>
+                <button class="btn-small" onclick="showToast('Appareil BLE sélectionné : ${device.name}')">Sélectionner</button>
+            </div>`;
+    } catch {
+        if (resultsEl) resultsEl.innerHTML = '<em style="font-size:.82rem;color:var(--text-muted)">Scan annulé.</em>';
+    }
 }
 
 /* ==================================================================
@@ -634,7 +932,12 @@ function renderProfilsList() {
     container.className = 'responsive-grid';
     const colors = { 'super_admin':'#f0883e', 'Administrateur':'var(--blue)', 'Régulier':'var(--green)', 'Visiteur':'var(--text-muted)' };
 
-    state.profils.forEach(prof => {
+    const myRole  = getCurrentRole();
+    const visible = myRole === 'super_admin'
+        ? state.profils
+        : state.profils.filter(p => (p.type || '').toLowerCase().replace(/\s/g,'_') !== 'super_admin');
+
+    visible.forEach(prof => {
         const role  = prof.type || 'Régulier';
         const color = colors[role] || 'var(--text-muted)';
         const card  = document.createElement('div');
@@ -693,48 +996,19 @@ function createNewProfil() {
     if (!email) { showToast("L'email est requis", 'error');  return; }
     if (!supabaseClient) { showToast('Supabase non connecté', 'error'); return; }
 
-    const newProfil = {
-        name,
-        email,
-        phone,
-        type,
-        is_active:  true,
-        is_deleted: false,
-        expires_at: type === 'Visiteur' ? expiry : null
-    };
-
+    const newProfil = { name, email, phone, type, is_active: true, is_deleted: false, expires_at: type === 'Visiteur' ? expiry : null };
     showToast('Création en cours...', 'info');
 
-    supabaseClient
-        .from('profiles')
-        .insert([newProfil])
-        .select()
+    supabaseClient.from('profiles').insert([newProfil]).select()
         .then(function(result) {
-            console.log('DATA:', JSON.stringify(result.data));
-            console.log('ERROR:', JSON.stringify(result.error));
-            console.log('STATUS:', result.status);
-
-            if (result.error) {
-                showToast('Erreur : ' + result.error.message, 'error');
-                return;
-            }
-
-            if (result.data && result.data[0]) {
-                state.profils.push(result.data[0]);
-            }
-
+            if (result.error) { showToast('Erreur : ' + result.error.message, 'error'); return; }
+            if (result.data?.[0]) state.profils.push(result.data[0]);
             closeModal('modal-add-profil');
             renderProfilsList();
             showToast('✅ Profil créé : ' + name);
-
-            setTimeout(function() {
-                openInvitationModal(email, name, type, phone || '');
-            }, 600);
+            setTimeout(() => openInvitationModal(email, name, type, phone || ''), 600);
         })
-        .catch(function(err) {
-            console.log('CATCH ERROR:', err.message);
-            showToast('Erreur : ' + err.message, 'error');
-        });
+        .catch(err => showToast('Erreur : ' + err.message, 'error'));
 }
 
 function openProfilEdit(id) {
@@ -752,6 +1026,14 @@ function openProfilEdit(id) {
     document.getElementById('edit-prof-remote').value = prof.remote || '';
     _renderProfilAccessRights(prof);
     toggleProfilEditMode(false);
+    // Désactiver Supprimer pour Super Admin
+    const btnDel = document.querySelector('#profil-edit-view .btn-danger');
+    if (btnDel) {
+        const isSA = (prof.type || '').toLowerCase().replace(/\s/g,'_') === 'super_admin';
+        btnDel.disabled     = isSA;
+        btnDel.title        = isSA ? 'Impossible de supprimer le Super Admin' : '';
+        btnDel.style.opacity = isSA ? '0.4' : '';
+    }
 }
 
 function _renderProfilAccessRights(prof) {
@@ -847,36 +1129,18 @@ function openInvitationModal(email, name, role, phone) {
         <div class="modal-content" style="max-width:420px;">
             <h3 style="margin-bottom:6px;">📨 Inviter ${name}</h3>
             <p style="color:var(--text-sub);font-size:.85rem;margin-bottom:16px;">Rôle : <strong>${role}</strong></p>
-
             <div style="background:var(--card-inner);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">
                 <code style="font-size:.72rem;font-family:'DM Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-sub);">${url}</code>
                 <button class="btn-small" onclick="_copyLink('${url}')">Copier</button>
             </div>
-
             <div style="display:flex;flex-direction:column;gap:10px;">
-                ${email ? `
-                <a href="mailto:${email}?subject=Votre accès Thera Connect&body=${msgEnc}"
-                   style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;">
-                    <span style="font-size:1.3rem">📧</span>
-                    <div><div>Email</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${email}</div></div>
-                </a>` : '<div style="padding:10px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.83rem;text-align:center;">Email non renseigné</div>'}
-
+                ${email ? `<a href="mailto:${email}?subject=Votre accès Thera Connect&body=${msgEnc}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;"><span style="font-size:1.3rem">📧</span><div><div>Email</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${email}</div></div></a>` : '<div style="padding:10px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.83rem;text-align:center;">Email non renseigné</div>'}
                 ${tel ? `
-                <a href="sms:${tel}?body=${msgEnc}"
-                   style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;">
-                    <span style="font-size:1.3rem">💬</span>
-                    <div><div>SMS</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${phone}</div></div>
-                </a>
-                <a href="https://wa.me/${tel.replace('+','')}?text=${msgEnc}" target="_blank"
-                   style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;">
-                    <span style="font-size:1.3rem">🟢</span>
-                    <div><div>WhatsApp</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${phone}</div></div>
-                </a>` : '<div style="padding:10px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.83rem;text-align:center;">Téléphone non renseigné</div>'}
+                <a href="sms:${tel}?body=${msgEnc}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;"><span style="font-size:1.3rem">💬</span><div><div>SMS</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${phone}</div></div></a>
+                <a href="https://wa.me/${tel.replace('+','')}?text=${msgEnc}" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--radius);border:1.5px solid var(--border);background:white;color:var(--text-main);text-decoration:none;font-weight:600;font-size:.875rem;"><span style="font-size:1.3rem">🟢</span><div><div>WhatsApp</div><div style="font-size:.73rem;color:var(--text-sub);font-weight:400">${phone}</div></div></a>` : '<div style="padding:10px;border-radius:var(--radius);background:var(--card-inner);color:var(--text-muted);font-size:.83rem;text-align:center;">Téléphone non renseigné</div>'}
             </div>
-
             <button class="btn-cancel" style="width:100%;margin-top:14px;justify-content:center;" onclick="closeModal('modal-invitation')">Fermer</button>
         </div>`;
-
     modal.style.display = 'flex';
 }
 
@@ -903,6 +1167,7 @@ function renderAlertsSetup() {
     if (sv) sv.style.display = 'block';
     if (lv) lv.style.display = 'none';
     prepareAlertSetup();
+    renderAlertRules();
 }
 
 function showAlertSubPage(view) {
@@ -910,8 +1175,39 @@ function showAlertSubPage(view) {
     const lv = document.getElementById('alert-logs-view');
     if (sv) sv.style.display = view === 'setup' ? 'block' : 'none';
     if (lv) lv.style.display = view === 'logs'  ? 'block' : 'none';
-    if (view === 'setup') prepareAlertSetup();
+    if (view === 'setup') { prepareAlertSetup(); renderAlertRules(); }
     else renderAlertLogs();
+}
+
+function renderAlertRules() {
+    const container = document.getElementById('alert-rules-list');
+    if (!container) return;
+    const typeLabels = { stay_open:'🚪 Ouvert trop longtemps', wrong_hours:'🕒 Hors-horaires', hardware_cell:'❌ Défaut capteur' };
+    if (!state.alertRules.length) {
+        container.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:16px">Aucune règle configurée.</p>';
+        return;
+    }
+    container.innerHTML = state.alertRules.map((r, i) => {
+        const acc = state.acces.find(a => a.id === r.access_id);
+        return `<div class="alert-item" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-weight:600;font-size:.88rem">${typeLabels[r.type] || r.type}</div>
+                <small>${acc ? acc.name : 'Accès inconnu'}${r.duration ? ` · ${r.duration} min` : ''}</small>
+            </div>
+            <button class="btn-small" style="color:var(--red)" onclick="deleteAlertRule(${i})">✕</button>
+        </div>`;
+    }).join('');
+}
+
+async function deleteAlertRule(i) {
+    const rule = state.alertRules[i];
+    if (!rule) return;
+    if (supabaseClient && rule.id) {
+        await supabaseClient.from('alert_rules').delete().eq('id', rule.id).catch(() => {});
+    }
+    state.alertRules.splice(i, 1);
+    renderAlertRules();
+    showToast('Règle supprimée');
 }
 
 function prepareAlertSetup() {
@@ -949,7 +1245,7 @@ async function saveNewAlertRule() {
         }
         state.alertRules.push(rule);
         showToast('✅ Règle enregistrée');
-        showAlertSubPage('logs');
+        showAlertSubPage('setup');
     } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
 }
 
@@ -1130,6 +1426,69 @@ async function _deleteToTrash(type, id) {
 }
 
 /* ==================================================================
+   TEMPS RÉEL — Ping 30s + Supabase Realtime + Badge alertes
+================================================================== */
+let _pingLoopTimer = null;
+
+function startRealtimeFeatures() {
+    clearInterval(_pingLoopTimer);
+    _pingAllAccesses();
+    _pingLoopTimer = setInterval(_pingAllAccesses, 30000);
+
+    if (!supabaseClient) return;
+    supabaseClient.channel('realtime-logs')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'logs' }, payload => {
+            const l = payload.new;
+            state.historique.unshift({ id: l.id, timestamp: l.created_at, user: l.operator, access: l.details, action: l.action, source: l.source });
+            state.alertLogs.unshift({ timestamp: l.created_at, text: `${l.action} — ${l.details}` });
+            _updateAlertBadge();
+            const active = document.querySelector('.page.active')?.id;
+            if (active === 'page-accueil')    renderAccueil();
+            if (active === 'page-historique') renderHistory();
+        })
+        .subscribe();
+}
+
+async function _pingAllAccesses() {
+    if (!state.acces.length) return;
+    let changed = false;
+    await Promise.all(state.acces.map(async acc => {
+        if (!acc.ip) return;
+        try {
+            const ctrl = new AbortController();
+            setTimeout(() => ctrl.abort(), 3000);
+            await fetch(`http://${acc.ip}/status`, { signal: ctrl.signal, mode: 'no-cors' });
+            if (!acc._online) { acc._online = true; changed = true; }
+        } catch {
+            if (acc._online !== false) { acc._online = false; changed = true; }
+        }
+    }));
+    if (changed) {
+        const active = document.querySelector('.page.active')?.id;
+        if (active === 'page-accueil') renderAccueil();
+        if (active === 'page-acces')   renderAccesList();
+    }
+}
+
+function _updateAlertBadge() {
+    const btn = document.querySelector('.nav-btn[onclick*="page-alerts"]');
+    if (!btn) return;
+    const since24h = new Date(Date.now() - 86400000);
+    const count    = state.alertLogs.filter(l => new Date(l.timestamp) > since24h).length;
+    let badge = btn.querySelector('.alert-nav-badge');
+    if (count > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'alert-nav-badge';
+            btn.appendChild(badge);
+        }
+        badge.textContent = count > 99 ? '99+' : count;
+    } else if (badge) {
+        badge.remove();
+    }
+}
+
+/* ==================================================================
    SYSTÈME
 ================================================================== */
 function renderSystemModules() {
@@ -1192,23 +1551,44 @@ function saveSupabaseConfig() {
     const url = document.getElementById('sb-url').value.trim();
     const key = document.getElementById('sb-key').value.trim();
     if (!url || !key) { showToast('Remplissez les deux champs', 'error'); return; }
-                localStorage.setItem('supabase_url', url);
-                        localStorage.setItem('supabase_key', key);
-                                initSupabase(url, key); loadAllData();
-                                        showToast('💾 Configuration enregistrée');
+    localStorage.setItem('supabase_url', url);
+    localStorage.setItem('supabase_key', key);
+    initSupabase(url, key);
+    loadAllData();
+    startCloudHealthPolling();
+    showToast('💾 Configuration enregistrée');
 }
 
-function testCloudConnection() {
-    if (!supabaseClient) { showToast('Supabase non initialisé', 'error'); return; }
-    supabaseClient.from('profiles').select('id').limit(1)
-        .then(({ error }) => showToast(
-            error ? `❌ ${error.message}` : '✅ Connexion réussie !',
-            error ? 'error' : 'success'
-        ));
+let _cloudPollTimer = null;
+
+async function checkCloudHealth(silent = false) {
+    const badge = document.getElementById('cloud-health-badge');
+    if (badge) { badge.textContent = '⏳ Vérification…'; badge.style.color = 'var(--text-muted)'; }
+    if (!supabaseClient) {
+        if (badge) { badge.textContent = '❌ ÉCHEC — non configuré'; badge.style.color = 'var(--red)'; }
+        if (!silent) showToast('Supabase non initialisé', 'error');
+        return;
+    }
+    const { error } = await supabaseClient.from('profiles').select('id').limit(1);
+    const ok = !error;
+    const ts = new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    if (badge) {
+        badge.textContent = ok ? `✅ Connexion Cloud OK · ${ts}` : `❌ ÉCHEC · ${ts}`;
+        badge.style.color = ok ? 'var(--green)' : 'var(--red)';
+    }
+    if (!silent) showToast(ok ? '✅ Connexion réussie !' : `❌ ${error.message}`, ok ? 'success' : 'error');
 }
+
+function startCloudHealthPolling() {
+    clearInterval(_cloudPollTimer);
+    checkCloudHealth(true);
+    _cloudPollTimer = setInterval(() => checkCloudHealth(true), 5 * 60 * 1000);
+}
+
+function testCloudConnection() { checkCloudHealth(false); }
 
 /* ==================================================================
-   TOAST NOTIFICATIONS
+   TOAST
 ================================================================== */
 function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
@@ -1224,8 +1604,8 @@ function showToast(message, type = 'success') {
         s.textContent = '@keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.95)}to{opacity:1;transform:none}}';
         document.head.appendChild(s);
     }
-    const colors  = { success:'#3ecf8e', error:'#f85149', info:'#4c9cf8' };
-    const toast   = document.createElement('div');
+    const colors = { success:'#3ecf8e', error:'#f85149', info:'#4c9cf8' };
+    const toast  = document.createElement('div');
     toast.style.cssText = `background:${colors[type]||colors.success};color:white;padding:11px 18px;border-radius:10px;font-size:.87rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:320px;animation:toastIn .3s cubic-bezier(.34,1.56,.64,1) both;pointer-events:auto;`;
     toast.textContent = message;
     container.appendChild(toast);
@@ -1239,37 +1619,6 @@ function showToast(message, type = 'success') {
    INIT
 ================================================================== */
 window.onload = () => {
-    console.log('🚀 Thera Connect v3.1');
+    console.log('🚀 Thera Connect v4.0');
     if (window.lucide) lucide.createIcons();
 };
-
-
-/* ============================================================
-   BARRE NAVIGATION MOBILE BAS
-      ============================================================ */
-
-      function setBottomNavActive(id) {
-          document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
-              const el = document.getElementById(id);
-                  if (el) el.classList.add('active');
-                  }
-
-                  (function() {
-                      let lastY = 0;
-                          let ticking = false;
-                              window.addEventListener('scroll', function() {
-                                      if (!ticking) {
-                                                  requestAnimationFrame(function() {
-                                                                  const nav = document.getElementById('bottom-nav');
-                                                                                  if (nav) {
-                                                                                                      const y = window.scrollY;
-                                                                                                                          if (y > lastY + 10) nav.classList.add('hidden');
-                                                                                                                                              else if (y < lastY - 5) nav.classList.remove('hidden');
-                                                                                                                                                                  lastY = y;
-                                                                                                                                                                                  }
-                                                                                                                                                                                                  ticking = false;
-                                                                                                                                                                                                              });
-                                                                                                                                                                                                                          ticking = true;
-                                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                                      }, { passive: true });
-                                                                                                                                                                                                                                      })();
