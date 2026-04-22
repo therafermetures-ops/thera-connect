@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "esbenp.prettier-vscode",
+        "ritwickdey.liveserver",
+        "ms-vscode.vscode-js-profile-flame",
+        "platformio.platformio-ide"
+    ]
+}

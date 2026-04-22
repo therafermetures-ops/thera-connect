@@ -1,0 +1,13 @@
+{
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "files.autoSave": "off",
+    "liveServer.settings.root": "/",
+    "liveServer.settings.port": 5500,
+    "files.exclude": {
+        "node_modules": true,
+        ".vercel": false
+    },
+    "editor.wordWrap": "on"
+}
