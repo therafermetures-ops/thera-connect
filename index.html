@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+    <button id="mobile-menu-btn" onclick="toggleSidebar()">â°</button>
     <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="main-layout">
@@ -25,13 +25,13 @@
                     <i data-lucide="layout-dashboard"></i> <span>Tableau de Bord</span>
                 </button>
                 <button class="nav-btn" id="snav-acces" onclick="showPage('page-acces')">
-                    <i data-lucide="door-open"></i> <span>Points d'Accès</span>
+                    <i data-lucide="door-open"></i> <span>Points d'AccÃ¨s</span>
                 </button>
                 <button class="nav-btn" id="snav-profils" onclick="showPage('page-profils')">
                     <i data-lucide="users"></i> <span>Utilisateurs</span>
                 </button>
                 <button class="nav-btn" id="snav-cles" onclick="showPage('page-cles')">
-                    <i data-lucide="key-round"></i> <span>Clés & Badges</span>
+                    <i data-lucide="key-round"></i> <span>ClÃ©s & Badges</span>
                 </button>
                 <button class="nav-btn" id="snav-alerts" onclick="showPage('page-alerts')">
                     <i data-lucide="bell-ring"></i>
@@ -65,10 +65,10 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                         <div class="status-badge" id="cloud-health-badge">
-                            <span class="dot-online"></span> Système Connecté
+                            <span class="dot-online"></span> SystÃ¨me ConnectÃ©
                         </div>
                         <details id="health-details" style="font-size:.8rem;color:var(--text-sub);">
-                            <summary style="cursor:pointer;list-style:none;">🔍 Détails</summary>
+                            <summary style="cursor:pointer;list-style:none;">ð DÃ©tails</summary>
                             <div id="health-details-content" style="margin-top:6px;padding:8px;background:var(--card-inner);border-radius:var(--radius-sm);min-width:200px;"></div>
                         </details>
                     </div>
@@ -77,56 +77,42 @@
                     <div class="card stat-card">
                         <i data-lucide="door-open" class="icon-blue"></i>
                         <div>
-                            <span class="stat-label">Accès Actifs</span>
-                            <span class="stat-value" id="stat-acces">—</span>
+                            <span class="stat-label">AccÃ¨s Actifs</span>
+                            <span class="stat-value" id="stat-acces">â</span>
                         </div>
                     </div>
                     <div class="card stat-card">
                         <i data-lucide="shield-alert" class="icon-orange"></i>
                         <div>
                             <span class="stat-label">Alertes 24h</span>
-                            <span class="stat-value" id="stat-alertes">—</span>
+                            <span class="stat-value" id="stat-alertes">â</span>
                         </div>
                     </div>
-                    <div class="card stat-card">
-                        <i data-lucide="users" class="icon-green"></i>
-                        <div>
-                            <span class="stat-label">Profils</span>
-                            <span class="stat-value" id="stat-profils">—</span>
-                        </div>
                     </div>
-                    <div class="card stat-card">
-                        <i data-lucide="activity" class="icon-blue"></i>
-                        <div>
-                            <span class="stat-label">Événements 24h</span>
-                            <span class="stat-value" id="stat-events">—</span>
-                        </div>
-                    </div>
-                </div>
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                    <h3>⭐ Accès Favoris</h3>
-                    <span id="realtime-indicator" style="font-size:.75rem;color:var(--text-muted);">⬤ Temps réel</span>
+                    <h3>â­ AccÃ¨s Favoris</h3>
+                    <span id="realtime-indicator" style="font-size:.75rem;color:var(--text-muted);">â¬¤ Temps rÃ©el</span>
                 </div>
                 <div id="favorites-container" class="grid-favorites"></div>
             </section>
 
-            <!-- POINTS D'ACCÈS -->
+            <!-- POINTS D'ACCÃS -->
             <section id="page-acces" class="page">
                 <div id="acces-list-view">
                     <div class="header-actions">
-                        <h2>Mes Accès</h2>
+                        <h2>Mes AccÃ¨s</h2>
                         <button class="btn-add-circle" onclick="openAddAccesForm()">+</button>
                     </div>
                     <div id="list-acces-grid" class="grid-container"></div>
                 </div>
                 <div id="acces-edit-view" style="display:none;">
                     <div class="header-actions">
-                        <button class="btn-outline" onclick="closeAccesEdit()">← Retour</button>
-                        <h2 id="edit-acces-title">Fiche Accès</h2>
+                        <button class="btn-outline" onclick="closeAccesEdit()">â Retour</button>
+                        <h2 id="edit-acces-title">Fiche AccÃ¨s</h2>
                     </div>
                     <div class="card shadow">
                         <div class="form-group">
-                            <label>Nom de l'accès :</label>
+                            <label>Nom de l'accÃ¨s :</label>
                             <input type="text" id="edit-acc-name" disabled>
                         </div>
                         <div class="form-group">
@@ -135,27 +121,27 @@
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                             <div class="form-group">
-                                <label>N° Relais (Kincony) :</label>
+                                <label>NÂ° Relais (Kincony) :</label>
                                 <input type="number" id="edit-acc-relay" min="1" max="32" disabled placeholder="1">
                             </div>
                         </div>
 
                         <!-- Panneau connexion ESP32 -->
                         <hr>
-                        <h3>🔌 Connexion ESP32</h3>
+                        <h3>ð Connexion ESP32</h3>
                         <div class="card-inner" id="esp32-panel">
                             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                                <span id="esp32-badge" class="esp32-badge esp32-unknown">— Statut inconnu</span>
+                                <span id="esp32-badge" class="esp32-badge esp32-unknown">â Statut inconnu</span>
                                 <div style="display:flex;gap:8px;">
-                                    <button class="btn-small" onclick="pingCurrentAcces()">🔄 Ping</button>
-                                    <button class="btn-small" onclick="rebootCurrentESP()">⟳ Reboot</button>
+                                    <button class="btn-small" onclick="pingCurrentAcces()">ð Ping</button>
+                                    <button class="btn-small" onclick="rebootCurrentESP()">â³ Reboot</button>
                                 </div>
                             </div>
                             <div id="esp32-status-details" style="font-size:.82rem;color:var(--text-sub);"></div>
                         </div>
 
                         <hr>
-                        <h3>📅 Planning d'ouverture</h3>
+                        <h3>ð Planning d'ouverture</h3>
                         <div class="card-inner">
                             <div class="days-selector">
                                 <label><input type="checkbox" class="plan-day" value="1"> L</label>
@@ -169,14 +155,14 @@
                             <div class="time-range">
                                 <label>De :</label>
                                 <input type="time" id="plan-start" value="08:00" disabled>
-                                <label>À :</label>
+                                <label>Ã :</label>
                                 <input type="time" id="plan-end" value="18:00" disabled>
                             </div>
                         </div>
                         <div class="edit-footer-actions">
                             <button id="btn-unlock-edit" class="btn-primary" onclick="toggleEditMode(true)">Activer les modifications</button>
                             <button id="btn-save-edit" class="btn-success" onclick="saveAccesModifications()" style="display:none;">Valider</button>
-                            <button class="btn-danger" onclick="deleteCurrentAcces()">🗑️ Supprimer</button>
+                            <button class="btn-danger" onclick="deleteCurrentAcces()">ðï¸ Supprimer</button>
                         </div>
                     </div>
                 </div>
@@ -186,14 +172,14 @@
             <section id="page-profils" class="page">
                 <div id="profils-list-view">
                     <div class="header-actions">
-                        <h2>👥 Gestion des Profils</h2>
+                        <h2>ð¥ Gestion des Profils</h2>
                         <button class="btn-add-circle" onclick="openAddProfilForm()">+</button>
                     </div>
                     <div id="list-profils-grid" class="grid-container"></div>
                 </div>
                 <div id="profil-edit-view" style="display:none;">
                     <div class="header-actions">
-                        <button class="btn-outline" onclick="closeProfilEdit()">← Retour</button>
+                        <button class="btn-outline" onclick="closeProfilEdit()">â Retour</button>
                         <h2 id="edit-profil-title">Fiche Utilisateur</h2>
                     </div>
                     <div class="card shadow">
@@ -206,7 +192,7 @@
                             <input type="email" id="edit-prof-email" disabled>
                         </div>
                         <div class="form-group">
-                            <label>Téléphone :</label>
+                            <label>TÃ©lÃ©phone :</label>
                             <input type="tel" id="edit-prof-phone" disabled>
                         </div>
                         <div class="form-group">
@@ -214,31 +200,31 @@
                             <select id="edit-prof-type" disabled>
                                 <option value="super_admin" style="display:none;">Super Admin</option>
                                 <option value="Administrateur">Administrateur</option>
-                                <option value="Régulier">Régulier</option>
+                                <option value="RÃ©gulier">RÃ©gulier</option>
                                 <option value="Visiteur">Visiteur</option>
                             </select>
                         </div>
                         <hr>
-                        <h3>🔑 Identifiants d'accès</h3>
+                        <h3>ð Identifiants d'accÃ¨s</h3>
                         <div class="form-group">
                             <label>Code PIN :</label>
                             <input type="number" id="edit-prof-code" placeholder="Ex: 1234" disabled>
                         </div>
                         <div class="form-group">
-                            <label>ID Télécommande :</label>
-                            <input type="text" id="edit-prof-remote" placeholder="Numéro série" disabled>
+                            <label>ID TÃ©lÃ©commande :</label>
+                            <input type="text" id="edit-prof-remote" placeholder="NumÃ©ro sÃ©rie" disabled>
                         </div>
                         <div class="form-group">
                             <label>ID Badge :</label>
                             <input type="text" id="edit-prof-badge" placeholder="ID Unique" disabled>
                         </div>
                         <hr>
-                        <h3>🛡️ Droits d'accès</h3>
+                        <h3>ð¡ï¸ Droits d'accÃ¨s</h3>
                         <div id="profil-permissions-container"></div>
                         <div class="edit-footer-actions">
                             <button id="btn-unlock-prof" class="btn-primary" onclick="toggleProfilEditMode(true)">Activer les modifications</button>
                             <button id="btn-save-prof" class="btn-success" onclick="saveProfilModifications()" style="display:none;">Valider</button>
-                            <button class="btn-danger" onclick="deleteCurrentProfil()">🗑️ Supprimer</button>
+                            <button class="btn-danger" onclick="deleteCurrentProfil()">ðï¸ Supprimer</button>
                         </div>
                     </div>
                 </div>
@@ -247,37 +233,37 @@
             <!-- ALERTES -->
             <section id="page-alerts" class="page">
                 <div class="header-actions">
-                    <h2>⚠️ Alertes</h2>
+                    <h2>â ï¸ Alertes</h2>
                     <div style="display:flex;gap:10px;">
-                        <button class="btn-primary" onclick="showAlertSubPage('setup')">Créer une alerte</button>
+                        <button class="btn-primary" onclick="showAlertSubPage('setup')">CrÃ©er une alerte</button>
                         <button class="btn-outline" onclick="showAlertSubPage('logs')">Journal</button>
                     </div>
                 </div>
 
-                <!-- Liste des règles actives -->
+                <!-- Liste des rÃ¨gles actives -->
                 <div id="alert-rules-list" class="card shadow" style="margin-bottom:16px;">
-                    <h3 style="margin-bottom:12px;">📋 Règles actives</h3>
+                    <h3 style="margin-bottom:12px;">ð RÃ¨gles actives</h3>
                     <div id="alert-rules-container">
-                        <p style="color:var(--text-muted);font-size:.88rem;">Aucune règle configurée.</p>
+                        <p style="color:var(--text-muted);font-size:.88rem;">Aucune rÃ¨gle configurÃ©e.</p>
                     </div>
                 </div>
 
                 <div id="alert-setup-view" class="card shadow">
-                    <h3>Nouvelle Règle d'Alerte</h3>
+                    <h3>Nouvelle RÃ¨gle d'Alerte</h3>
                     <div class="form-group">
-                        <label>Accès concerné :</label>
+                        <label>AccÃ¨s concernÃ© :</label>
                         <select id="alert-target-access"></select>
                     </div>
                     <div class="form-group">
                         <label>Type d'alerte :</label>
                         <select id="alert-type-select" onchange="toggleAlertFields()">
-                            <option value="stay_open">🚪 Portail ouvert trop longtemps</option>
-                            <option value="wrong_hours">🕒 Ouverture hors-horaires</option>
-                            <option value="hardware_cell">❌ Défaut capteur</option>
+                            <option value="stay_open">ðª Portail ouvert trop longtemps</option>
+                            <option value="wrong_hours">ð Ouverture hors-horaires</option>
+                            <option value="hardware_cell">â DÃ©faut capteur</option>
                         </select>
                     </div>
                     <div id="field-duration" class="card-inner">
-                        <label>Durée limite :</label>
+                        <label>DurÃ©e limite :</label>
                         <select id="alert-limit-time">
                             <option value="5">5 minutes</option>
                             <option value="10">10 minutes</option>
@@ -291,23 +277,23 @@
                         <div class="time-range" style="margin-top:10px;">
                             <label>De :</label>
                             <input type="time" id="alert-start" value="08:00">
-                            <label>À :</label>
+                            <label>Ã :</label>
                             <input type="time" id="alert-end" value="18:00">
                         </div>
                     </div>
                     <button class="btn-success" style="width:100%;margin-top:15px;" onclick="saveNewAlertRule()">Enregistrer</button>
                 </div>
                 <div id="alert-logs-view" style="display:none;" class="card shadow">
-                    <h3>📜 Journal des alertes</h3>
+                    <h3>ð Journal des alertes</h3>
                     <div id="alert-history-list" class="list-container">
-                        <p style="text-align:center;color:var(--text-muted);padding:24px;">Aucune alerte récente.</p>
+                        <p style="text-align:center;color:var(--text-muted);padding:24px;">Aucune alerte rÃ©cente.</p>
                     </div>
                 </div>
             </section>
 
-            <!-- CLÉS & BADGES -->
+            <!-- CLÃS & BADGES -->
             <section id="page-cles" class="page">
-                <div class="header-actions"><h2>🔑 Clés & Badges</h2></div>
+                <div class="header-actions"><h2>ð ClÃ©s & Badges</h2></div>
                 <div class="card shadow">
                     <div class="search-bar-container">
                         <input type="text" id="search-key-input" placeholder="Rechercher..." onkeyup="filterKeys()">
@@ -315,7 +301,7 @@
                             <button class="chip active" onclick="setKeyFilter('all')">Tout</button>
                             <button class="chip" onclick="setKeyFilter('code')">Codes</button>
                             <button class="chip" onclick="setKeyFilter('badge')">Badges</button>
-                            <button class="chip" onclick="setKeyFilter('remote')">Télécommandes</button>
+                            <button class="chip" onclick="setKeyFilter('remote')">TÃ©lÃ©commandes</button>
                         </div>
                     </div>
                     <hr>
@@ -333,20 +319,20 @@
             <!-- HISTORIQUE -->
             <section id="page-historique" class="page">
                 <div class="header-actions">
-                    <h2>📜 Historique</h2>
-                    <button class="btn-outline" onclick="exportHistory()">📥 Exporter CSV</button>
+                    <h2>ð Historique</h2>
+                    <button class="btn-outline" onclick="exportHistory()">ð¥ Exporter CSV</button>
                 </div>
                 <div class="card shadow">
                     <div class="table-responsive">
                         <table class="pro-table">
                             <thead>
-                                <tr><th>Date & Heure</th><th>Utilisateur</th><th>Accès</th><th>Action</th><th>Source</th></tr>
+                                <tr><th>Date & Heure</th><th>Utilisateur</th><th>AccÃ¨s</th><th>Action</th><th>Source</th></tr>
                             </thead>
                             <tbody id="history-table-body"></tbody>
                         </table>
                     </div>
                     <div id="history-empty-msg" style="display:none;text-align:center;padding:40px;color:var(--text-muted);">
-                        Aucun événement enregistré.
+                        Aucun Ã©vÃ©nement enregistrÃ©.
                     </div>
                 </div>
             </section>
@@ -354,7 +340,7 @@
             <!-- CORBEILLE -->
             <section id="page-corbeille" class="page">
                 <div class="header-actions">
-                    <h2>🗑️ Corbeille</h2>
+                    <h2>ðï¸ Corbeille</h2>
                 </div>
                 <div class="card shadow">
                     <div class="table-responsive">
@@ -371,33 +357,33 @@
                 </div>
             </section>
 
-            <!-- RÉGLAGES -->
+            <!-- RÃGLAGES -->
             <section id="page-reglages" class="page">
-                <div class="header-actions"><h2>⚙️ Réglages</h2>
+                <div class="header-actions"><h2>âï¸ RÃ©glages</h2>
         <div id="cloud-status-badge" class="status-badge">
-            <span class="dot-online"></span> Cloud Connecté
+            <span class="dot-online"></span> Cloud ConnectÃ©
         </div></div>
                 <div style="display:none" class="card shadow">
-                    <h3>🎨 Personnalisation</h3>
+                    <h3>ð¨ Personnalisation</h3>
                     <div class="form-group">
                         <label>Nom de l'application :</label>
                         <input type="text" id="setting-app-name" placeholder="Thera Connect">
                     </div>
                     <div class="form-group">
-                        <label>URL Logo / Fond d'écran :</label>
+                        <label>URL Logo / Fond d'Ã©cran :</label>
                         <input type="text" id="setting-app-logo" placeholder="https://...">
                     </div>
                     <button class="btn-primary" onclick="saveAppSettings()">Enregistrer</button>
                 </div>
                 <div style="display:none" class="card shadow" style="margin-top:20px;border-left:4px solid var(--primary);">
-                    <h3>⚡ Connexion Supabase</h3>
+                    <h3>â¡ Connexion Supabase</h3>
                     <div class="form-group">
                         <label>URL du projet :</label>
                         <input type="password" id="sb-url" placeholder="https://xyz.supabase.co">
                     </div>
                     <div class="form-group">
-                        <label>Clé API (Anon Key) :</label>
-                        <input type="password" id="sb-key" placeholder="Votre clé">
+                        <label>ClÃ© API (Anon Key) :</label>
+                        <input type="password" id="sb-key" placeholder="Votre clÃ©">
                     </div>
                     <div style="display:flex;gap:10px;">
                         <button class="btn-success" onclick="saveSupabaseConfig()">Connecter</button>
@@ -406,28 +392,28 @@
                 </div>
             </section>
 
-            <!-- SYSTÈME -->
+            <!-- SYSTÃME -->
             <section id="page-systeme" class="page">
-                <div class="header-actions"><h2>🖥️ Maintenance Système</h2></div>
+                <div class="header-actions"><h2>ð¥ï¸ Maintenance SystÃ¨me</h2></div>
                 <div class="card shadow">
                     <h3>Application</h3>
-                    <button class="btn-primary" onclick="restartApp()">Redémarrer</button>
+                    <button class="btn-primary" onclick="restartApp()">RedÃ©marrer</button>
                 </div>
                 <div class="card shadow" style="margin-top:20px;">
-                    <h3>🔌 Modules ESP32</h3>
+                    <h3>ð Modules ESP32</h3>
                     <div id="system-modules-list"></div>
                 </div>
             
     <div class="card shadow" id="reboot-module-card">
-        <h3>🔄 Redémarrage Module</h3>
+        <h3>ð RedÃ©marrage Module</h3>
         <div class="form-group">
-            <label>Sélectionner le module :</label>
+            <label>SÃ©lectionner le module :</label>
             <select id="reboot-module-select">
                 <option value="">-- Choisir --</option>
             </select>
         </div>
         <button class="btn-primary" onclick="rebootModule(document.getElementById('reboot-module-select')?.value)">
-            🔄 Redémarrer
+            ð RedÃ©marrer
         </button>
     </div>
 </section>
@@ -438,7 +424,7 @@
     <!-- MODALES -->
     <div id="modal-control" class="modal">
         <div class="modal-content">
-            <h3 id="modal-title-target">Accès</h3>
+            <h3 id="modal-title-target">AccÃ¨s</h3>
             <p>Quelle action souhaitez-vous effectuer ?</p>
             <div id="modal-btns" class="modal-actions">
                 <button class="btn-primary" onclick="startOpenSlider()">OUVRIR</button>
@@ -449,8 +435,8 @@
                 <p style="font-size:.8rem;color:var(--text-sub);margin-bottom:8px;text-align:center;">Glissez pour confirmer l'ouverture</p>
                 <div class="slider-track" id="slider-track">
                     <div class="slider-fill" id="slider-fill"></div>
-                    <div class="slider-label" id="slider-label">Glissez pour ouvrir →</div>
-                    <div class="slider-thumb" id="slider-thumb">→</div>
+                    <div class="slider-label" id="slider-label">Glissez pour ouvrir â</div>
+                    <div class="slider-thumb" id="slider-thumb">â</div>
                 </div>
             </div>
             <button class="btn-outline" style="width:100%;margin-top:12px;" onclick="closeModal('modal-control')">Annuler</button>
@@ -459,17 +445,17 @@
 
     <div id="modal-add-acces" class="modal">
         <div class="modal-content">
-            <h3>➕ Nouvel Accès</h3>
+            <h3>â Nouvel AccÃ¨s</h3>
             <div class="form-group">
                 <label>Nom du portail :</label>
-                <input type="text" id="new-acc-name" placeholder="Ex: Entrée Nord">
+                <input type="text" id="new-acc-name" placeholder="Ex: EntrÃ©e Nord">
             </div>
             <div class="form-group">
                 <label>Adresse IP Kincony :</label>
                 <input type="text" id="new-acc-ip" placeholder="192.168.1.XX">
             </div>
             <div class="modal-actions">
-                <button class="btn-success" onclick="createNewAcces()">Créer</button>
+                <button class="btn-success" onclick="createNewAcces()">CrÃ©er</button>
                 <button class="btn-cancel" onclick="closeModal('modal-add-acces')">Annuler</button>
             </div>
         </div>
@@ -477,7 +463,7 @@
 
     <div id="modal-add-profil" class="modal">
         <div class="modal-content">
-            <h3>👥 Nouveau Profil</h3>
+            <h3>ð¥ Nouveau Profil</h3>
             <div class="form-group">
                 <label>Nom complet *</label>
                 <input type="text" id="new-prof-name" placeholder="Ex: Jean Dupont">
@@ -487,23 +473,23 @@
                 <input type="email" id="new-prof-email" placeholder="jean@email.com">
             </div>
             <div class="form-group">
-                <label>Téléphone</label>
+                <label>TÃ©lÃ©phone</label>
                 <input type="tel" id="new-prof-phone" placeholder="+33 6 12 34 56 78">
             </div>
             <div class="form-group">
                 <label>Type de profil</label>
                 <select id="new-prof-type" onchange="toggleDateInput()">
                     <option value="Administrateur">Administrateur</option>
-                    <option value="Régulier">Régulier</option>
+                    <option value="RÃ©gulier">RÃ©gulier</option>
                     <option value="Visiteur" selected>Visiteur</option>
                 </select>
             </div>
             <div id="expiry-date-container" class="form-group" style="display:none;padding:10px;border:1px dashed var(--primary);border-radius:var(--radius);">
-                <label style="color:var(--primary);">📅 Date d'expiration :</label>
+                <label style="color:var(--primary);">ð Date d'expiration :</label>
                 <input type="datetime-local" id="new-prof-expiry">
             </div>
             <div class="modal-actions" style="margin-top:20px;">
-                <button class="btn-success" onclick="createNewProfil()">Créer le profil</button>
+                <button class="btn-success" onclick="createNewProfil()">CrÃ©er le profil</button>
                 <button class="btn-cancel" onclick="closeModal('modal-add-profil')">Annuler</button>
             </div>
         </div>
@@ -512,15 +498,15 @@
     <div id="modal-planning" class="modal">
         <div class="modal-content" style="max-width:900px;width:95vw;max-height:90vh;display:flex;flex-direction:column;padding:24px;overflow:hidden;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
-                <h3 id="planning-editor-title">Planning d'accès</h3>
+                <h3 id="planning-editor-title">Planning d'accÃ¨s</h3>
                 <div style="display:flex;gap:8px;">
                     <button class="btn-outline btn-small" onclick="clearPlanning()">Effacer</button>
-                    <button class="btn-success" onclick="savePlanning()">💾 Enregistrer</button>
-                    <button class="btn-cancel btn-small" onclick="closeModal('modal-planning')">✕</button>
+                    <button class="btn-success" onclick="savePlanning()">ð¾ Enregistrer</button>
+                    <button class="btn-cancel btn-small" onclick="closeModal('modal-planning')">â</button>
                 </div>
             </div>
             <p style="font-size:.82rem;color:var(--text-sub);margin-bottom:12px;flex-shrink:0;">
-                <strong>Double-clic</strong> pour créer · <strong>Glisser</strong> pour déplacer · <strong>Bas</strong> pour redimensionner
+                <strong>Double-clic</strong> pour crÃ©er Â· <strong>Glisser</strong> pour dÃ©placer Â· <strong>Bas</strong> pour redimensionner
             </p>
             <div id="planning-calendar-header" style="display:grid;grid-template-columns:52px repeat(7,1fr);gap:2px;margin-bottom:2px;flex-shrink:0;"></div>
             <div id="planning-calendar-grid" style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:var(--radius);"></div>
@@ -530,8 +516,8 @@
     <!-- Toast notification -->
     <div id="toast" class="toast" style="display:none;"></div>
 
-    <script src="script.js?v=4.3"></script>
-    <script src="auth.js?v=4.3"></script>
+    <script src="script.js?v=4.4"></script>
+    <script src="auth.js?v=4.4"></script>
 
     <!-- BARRE NAVIGATION MOBILE BAS -->
     <nav id="bottom-nav">
@@ -541,7 +527,7 @@
         </button>
         <button class="bottom-nav-btn" id="bnav-acces" onclick="showPage('page-acces')">
             <i data-lucide="door-open"></i>
-            <span>Accès</span>
+            <span>AccÃ¨s</span>
         </button>
         <button class="bottom-nav-btn" id="bnav-profils" onclick="showPage('page-profils')">
             <i data-lucide="users"></i>
@@ -554,7 +540,7 @@
         </button>
         <button class="bottom-nav-btn" id="bnav-reglages" onclick="showPage('page-reglages')">
             <i data-lucide="settings"></i>
-            <span>Réglages</span>
+            <span>RÃ©glages</span>
         </button>
     </nav>
 </body>
