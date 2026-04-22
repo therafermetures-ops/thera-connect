@@ -1,3 +1,4 @@
+
 /* ==================================================================
    AUTH.JS — Thera Connect Phase 2
    Gestion complète de l'authentification via Supabase Auth
