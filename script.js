@@ -1609,7 +1609,7 @@ let _pingLoopTimer = null;
 function startRealtimeFeatures() {
     clearInterval(_pingLoopTimer);
     _pingAllAccesses();
-    _pingLoopTimer = setInterval(_pingAllAccesses, 30000);
+    _pingLoopTimer = setInterval(() => { _pingAllAccesses().catch(e => console.warn('[Ping ESP32]', e.message)); }, 30000);
 
     if (!supabaseClient) return;
     supabaseClient.channel('realtime-logs')
@@ -1626,6 +1626,7 @@ function startRealtimeFeatures() {
 }
 
 async function _pingAllAccesses() {
+    try {
     if (!state.acces.length) return;
     let changed = false;
     await Promise.all(state.acces.map(async acc => {
@@ -1643,6 +1644,9 @@ async function _pingAllAccesses() {
         const active = document.querySelector('.page.active')?.id;
         if (active === 'page-accueil') renderAccueil();
         if (active === 'page-acces')   renderAccesList();
+    }
+    } catch(e) {
+        console.warn('[_pingAllAccesses]', e.message);
     }
 }
 
