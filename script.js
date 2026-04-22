@@ -109,7 +109,7 @@ async function loadAllData() {
             ...(profilsData || []).filter(p =>  p.is_deleted).map(p => ({ type: 'profil', data: p, date: new Date() }))
         ];
 
-        const { data: rules } = await supabaseClient.from('alert_rules').select('*').catch(() => ({ data: [] }));
+        const { data: rules } = await supabaseClient.from('alert_rules').select('*').then(r=>r).catch(() => ({ data: [] }));
         if (rules) state.alertRules = rules;
 
         // Logs 15 jours glissants
@@ -117,6 +117,7 @@ async function loadAllData() {
         const { data: logsData } = await supabaseClient.from('logs')
             .select('*').gte('created_at', since15d)
             .order('created_at', { ascending: false }).limit(300)
+            .then(r=>r)
             .catch(() => ({ data: [] }));
         if (logsData) {
             state.historique = logsData.map(l => ({
@@ -270,7 +271,11 @@ function showPage(pageId, _addHistory = true) {
     document.getElementById('sidebar-overlay')?.classList.remove('open');
     const btnBack = document.getElementById('btn-back');
     if (btnBack) btnBack.style.display = pageHistory.length > 1 ? 'block' : 'none';
-    if (window.lucide) lucide.createIcons();
+
+    // Sync bottom navigation bar
+    const _navIds = {'page-accueil':'bnav-accueil','page-acces':'bnav-acces','page-profils':'bnav-profils'};
+    if (_navIds[pageId]) setBottomNavActive(_navIds[pageId]);
+        if (window.lucide) lucide.createIcons();
 }
 
 function goBack() {
@@ -533,7 +538,7 @@ async function _executeCommand(action) {
 
     const newStatus = action === 'OUVRIR' ? 'ouvert' : 'ferme';
     if (supabaseClient) {
-        await supabaseClient.from('access_points').update({ status: newStatus }).eq('id', acc.id).catch(() => {});
+        await supabaseClient.from('access_points').update({ status: newStatus }).eq('id', acc.id).then(r=>r).catch(() => {});
     }
     const idx = state.acces.findIndex(a => a.id === acc.id);
     if (idx !== -1) state.acces[idx].status = newStatus;
@@ -837,6 +842,7 @@ function createNewAcces() {
             showToast('✅ Accès créé');
             renderAccesList();
         })
+        .then(r=>r)
         .catch(err => showToast('Erreur : ' + err.message, 'error'));
 }
 
@@ -874,10 +880,10 @@ async function pingCurrentAcces() {
     try {
         const ctrl = new AbortController();
         setTimeout(() => ctrl.abort(), 4000);
-        const res = await fetch(`http://${acc.ip}/status`, { signal: ctrl.signal, mode: 'cors' }).catch(() => null);
+        const res = await fetch(`http://${acc.ip}/status`, { signal: ctrl.signal, mode: 'cors' }).then(r=>r).catch(() => null);
 
         if (!res || !res.ok) throw new Error('hors ligne');
-        const data = await res.json().catch(() => null);
+        const data = await res.json().then(r=>r).catch(() => null);
 
         _setESPBadge('wifi',  'ok', '📶 WiFi ✅');
         _setESPBadge('ip',    'ok', `🌐 ${acc.ip} ✅`);
@@ -1008,6 +1014,7 @@ function createNewProfil() {
             showToast('✅ Profil créé : ' + name);
             setTimeout(() => openInvitationModal(email, name, type, phone || ''), 600);
         })
+        .then(r=>r)
         .catch(err => showToast('Erreur : ' + err.message, 'error'));
 }
 
@@ -1155,6 +1162,7 @@ function openInvitationModal(email, name, role, phone) {
 function _copyLink(url) {
     navigator.clipboard?.writeText(url)
         .then(() => showToast('✅ Lien copié !'))
+        .then(r=>r)
         .catch(() => {
             const el = document.createElement('textarea');
             el.value = url;
@@ -1211,7 +1219,7 @@ async function deleteAlertRule(i) {
     const rule = state.alertRules[i];
     if (!rule) return;
     if (supabaseClient && rule.id) {
-        await supabaseClient.from('alert_rules').delete().eq('id', rule.id).catch(() => {});
+        await supabaseClient.from('alert_rules').delete().eq('id', rule.id).then(r=>r).catch(() => {});
     }
     state.alertRules.splice(i, 1);
     renderAlertRules();
@@ -1257,6 +1265,19 @@ async function saveNewAlertRule() {
     } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
 }
 
+async function deleteAlertRule(ruleId) {
+    if (!confirm('Supprimer cette règle d\'alerte ?')) return;
+    try {
+        if (supabaseClient) {
+            const { error } = await supabaseClient.from('alert_rules').delete().eq('id', ruleId);
+            if (error) throw error;
+        }
+        state.alertRules = state.alertRules.filter(r => r.id !== ruleId);
+        showToast('✓ Règle supprimée');
+        renderAlertLogs();
+    } catch (err) { showToast('Erreur : ' + err.message, 'error'); }
+}
+
 function addAlertLog(message) {
     state.alertLogs.unshift({ timestamp: new Date(), text: message });
     const limit = new Date();
@@ -1268,13 +1289,56 @@ function addAlertLog(message) {
 function renderAlertLogs() {
     const container = document.getElementById('alert-history-list');
     if (!container) return;
-    container.innerHTML = state.alertLogs.length
-        ? state.alertLogs.map(l => `
-            <div class="alert-item">
-                <small>${new Date(l.timestamp).toLocaleString('fr-FR')}</small>
-                <div>${l.text}</div>
-            </div>`).join('')
-        : '<p style="text-align:center;color:var(--text-muted);padding:24px">Aucune alerte récente.</p>';
+    container.innerHTML = '';
+
+    const typeLabels = {
+        stay_open: '🚪 Portail ouvert trop longtemps',
+        wrong_hours: '🌙 Ouverture hors-horaires',
+        hardware_cell: '⚡ Défaut capteur'
+    };
+
+    if (!state.alertRules || !state.alertRules.length) {
+        container.innerHTML += '<p style="color:var(--text-muted);font-size:.9rem;margin-bottom:8px">Aucune règle configurée.</p>';
+    } else {
+        const rulesTitle = document.createElement('h4');
+        rulesTitle.textContent = 'Règles actives';
+        rulesTitle.style.marginBottom = '8px';
+        container.appendChild(rulesTitle);
+        state.alertRules.forEach(rule => {
+            const acc = state.acces.find(a => a.id === rule.access_id);
+            const el = document.createElement('div');
+            el.className = 'log-item';
+            el.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--card);border-radius:8px;margin-bottom:6px;';
+            el.innerHTML = `<div>
+                <div style="font-weight:600;font-size:.9rem">${typeLabels[rule.type] || rule.type}</div>
+                <div style="font-size:.8rem;color:var(--text-muted)">${acc ? acc.name : 'Accès inconnu'} — ${rule.duration || '—'} min</div>
+            </div>
+            <button class="btn-danger" style="padding:4px 10px;font-size:.8rem" onclick="deleteAlertRule('${rule.id}')">🗑️</button>`;
+            container.appendChild(el);
+        });
+    }
+
+    if (state.alertLogs && state.alertLogs.length > 0) {
+        const logsTitle = document.createElement('h4');
+        logsTitle.textContent = 'Journal des événements';
+        logsTitle.style.cssText = 'margin-top:16px;margin-bottom:8px';
+        container.appendChild(logsTitle);
+        // Keep only last 15 days
+        const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
+        const recentLogs = state.alertLogs.filter(l => new Date(l.created_at || l.ts).getTime() > cutoff);
+        if (!recentLogs.length) {
+            container.innerHTML += '<p style="color:var(--text-muted);font-size:.9rem">Aucun événement récent.</p>';
+        } else {
+            recentLogs.slice(-50).reverse().forEach(log => {
+                const el = document.createElement('div');
+                el.className = 'log-item';
+                el.style.cssText = 'padding:8px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:.85rem;';
+                const d = new Date(log.created_at || log.ts);
+                el.textContent = d.toLocaleString('fr-FR') + ' — ' + (log.message || log.type || 'Alerte');
+                container.appendChild(el);
+            });
+        }
+    }
 }
 
 /* ==================================================================
@@ -1334,7 +1398,7 @@ function addHistoryEntry(user, access, action, source = 'App') {
             operator:  user,
             source,
             details:   `${access} — ${action}`
-        }]).catch(() => {});
+        }]).then(r=>r).catch(() => {});
     }
 }
 
@@ -1536,7 +1600,7 @@ async function pingModule(ip) {
 
 function rebootModule(name, ip) {
     if (!confirm(`Redémarrer "${name}" ?`)) return;
-    fetch(`http://${ip}/reboot`, { mode: 'no-cors' }).catch(() => {});
+    fetch(`http://${ip}/reboot`, { mode: 'no-cors' }).then(r=>r).catch(() => {});
     showToast(`🔄 Reboot envoyé à ${name}`);
 }
 
@@ -1626,6 +1690,22 @@ function showToast(message, type = 'success') {
 /* ==================================================================
    INIT
 ================================================================== */
+
+function checkCloudStatus() {
+    const badge = document.getElementById('cloud-status-badge');
+    if (!badge || !supabaseClient) return;
+    supabaseClient.from('settings').select('id').limit(1)
+        .then(r => r)
+        .then(({ error }) => {
+            badge.className = error ? 'status-badge status-offline' : 'status-badge status-online';
+            badge.innerHTML = error 
+                ? '<span class="dot-offline"></span> Cloud Hors Ligne' 
+                : '<span class="dot-online"></span> Cloud Connecté';
+        });
+}
+// Poll cloud status every 5 minutes
+setInterval(checkCloudStatus, 5 * 60 * 1000);
+
 window.onload = () => {
     console.log('🚀 Thera Connect v4.0');
     if (window.lucide) lucide.createIcons();
