@@ -120,6 +120,13 @@ async function loadAllData() {
             .order('created_at', { ascending: false }).limit(300)
             .then(r=>r)
             .catch(() => ({ data: [] }));
+
+    // Load module status for favorites
+    try {
+        const { data: msData } = await supabaseClient.from('module_status').select('*').then(r=>r);
+        state.moduleStatus = msData || [];
+    } catch(e) { state.moduleStatus = []; }
+    
         if (logsData) {
             state.historique = logsData.map(l => ({
                 id: l.id, timestamp: l.created_at,
@@ -1210,6 +1217,13 @@ async function saveProfilModifications() {
 }
 
 function deleteCurrentProfil() {
+    // Protect super_admin from deletion
+    const _prof = state.profils.find(p => p.id === state._currentProfilId);
+    if (_prof && _prof.type === 'super_admin') {
+        showToast('⛔ Le super administrateur ne peut pas être supprimé', 'error');
+        return;
+    }
+    
     if (confirm('Envoyer à la corbeille ?')) _deleteToTrash('profil', currentEditingProfilId);
 }
 
