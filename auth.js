@@ -1,55 +1,50 @@
 
 /* ==================================================================
-   AUTH.JS — Thera Connect Phase 2
-   Gestion complète de l'authentification via Supabase Auth
-   Ce fichier doit être chargé AVANT script.js dans index.html
+   AUTH.JS â Thera Connect Phase 2
+   Gestion complÃ¨te de l'authentification via Supabase Auth
+   Ce fichier doit Ãªtre chargÃ© AVANT script.js dans index.html
 ================================================================== */
 
 /* ------------------------------------------------------------------
-   1. ÉTAT DE SESSION
+   1. ÃTAT DE SESSION
 ------------------------------------------------------------------ */
 let currentUser = null;      // Objet utilisateur Supabase Auth
 let currentProfil = null;    // Ligne correspondante dans la table 'profiles'
 
 /* ------------------------------------------------------------------
    2. INITIALISATION AU CHARGEMENT
-   Supabase est déjà initialisé via script.js (supabaseClient).
-   On écoute les changements de session dès que la page se charge.
+   Supabase est dÃ©jÃ  initialisÃ© via script.js (supabaseClient).
+   On Ã©coute les changements de session dÃ¨s que la page se charge.
 ------------------------------------------------------------------ */
 window.addEventListener('DOMContentLoaded', async () => {
-    // Attendre que supabaseClient soit disponible (initialisé dans script.js)
+    // Attendre que supabaseClient soit disponible (initialisÃ© dans script.js)
     await waitForSupabase();
 
     if (!supabaseClient) {
-        // Pas de config Supabase : afficher l'écran de configuration
+        // Pas de config Supabase : afficher l'Ã©cran de configuration
         showAuthScreen('config');
         return;
     }
 
-    // Écouter les changements d'état de session (login, logout, refresh)
+    // Ãcouter les changements d'Ã©tat de session (login, logout, refresh)
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔐 Auth event:', event);
+        console.log('ð Auth event:', event);
 
-        if (event === 'SIGNED_IN' && session) {
+        if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session) {
             await handleSignIn(session.user);
+        } else if (event === 'INITIAL_SESSION' && !session) {
+            showAuthScreen('login');
         } else if (event === 'SIGNED_OUT') {
             handleSignOut();
         } else if (event === 'TOKEN_REFRESHED' && session) {
-            console.log('🔄 Token rafraîchi.');
+            console.log('ð Token rafraÃ®chi.');
         }
     });
 
-    // Vérifier s'il y a déjà une session active (rechargement de page)
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        await handleSignIn(session.user);
-    } else {
-        showAuthScreen('login');
-    }
 });
 
 /* ------------------------------------------------------------------
-   3. ATTENTE DE SUPABASECLIENT (peut être initialisé après DOMContentLoaded)
+   3. ATTENTE DE SUPABASECLIENT (peut Ãªtre initialisÃ© aprÃ¨s DOMContentLoaded)
 ------------------------------------------------------------------ */
 function waitForSupabase(timeout = 3000) {
     return new Promise((resolve) => {
@@ -81,7 +76,7 @@ async function signInWithEmail() {
         return;
     }
 
-    // État de chargement
+    // Ãtat de chargement
     if (btn) { btn.disabled = true; btn.textContent = "Connexion..."; }
     if (errEl) errEl.textContent = "";
 
@@ -96,26 +91,26 @@ async function signInWithEmail() {
 }
 
 /* ------------------------------------------------------------------
-   5. DÉCONNEXION
+   5. DÃCONNEXION
 ------------------------------------------------------------------ */
 async function signOut() {
-    if (!confirm("Voulez-vous vous déconnecter ?")) return;
+    if (!confirm("Voulez-vous vous dÃ©connecter ?")) return;
 
     await supabaseClient.auth.signOut();
-    // onAuthStateChange déclenche handleSignOut()
+    // onAuthStateChange dÃ©clenche handleSignOut()
 }
 
 /* ------------------------------------------------------------------
-   6. APRÈS CONNEXION RÉUSSIE
-   - Récupérer le profil dans la table 'profiles' via l'email
-   - Appliquer les permissions selon le rôle
+   6. APRÃS CONNEXION RÃUSSIE
+   - RÃ©cupÃ©rer le profil dans la table 'profiles' via l'email
+   - Appliquer les permissions selon le rÃ´le
    - Afficher l'application
 ------------------------------------------------------------------ */
 async function handleSignIn(user) {
     currentUser = user;
-    console.log("✅ Utilisateur connecté :", user.email);
+    console.log("â Utilisateur connectÃ© :", user.email);
 
-    // Récupérer le profil dans la table profiles (correspondance par email)
+    // RÃ©cupÃ©rer le profil dans la table profiles (correspondance par email)
     const { data: profil, error } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -123,17 +118,17 @@ async function handleSignIn(user) {
         .single();
 
     if (error || !profil) {
-        console.warn("⚠️ Profil introuvable pour :", user.email, "— accès visiteur par défaut.");
+        console.warn("â ï¸ Profil introuvable pour :", user.email, "â accÃ¨s visiteur par dÃ©faut.");
         currentProfil = { name: user.email, type: 'Visiteur', role: 'Visiteur' };
     } else {
         currentProfil = profil;
     }
 
-    // Masquer l'écran d'auth, afficher l'app
+    // Masquer l'Ã©cran d'auth, afficher l'app
     hideAuthScreen();
     updateSidebarUser();
 
-    // Charger les données et appliquer les permissions
+    // Charger les donnÃ©es et appliquer les permissions
     await loadAllData();
     applyPermissions(currentProfil.type || currentProfil.role || 'Visiteur', currentProfil.expires_at);
 
@@ -141,24 +136,24 @@ async function handleSignIn(user) {
 }
 
 /* ------------------------------------------------------------------
-   7. APRÈS DÉCONNEXION
+   7. APRÃS DÃCONNEXION
 ------------------------------------------------------------------ */
 function handleSignOut() {
     currentUser = null;
     currentProfil = null;
 
-    // Réinitialiser le state
+    // RÃ©initialiser le state
     state.acces = [];
     state.profils = [];
     state.historique = [];
     state.trash = [];
 
     showAuthScreen('login');
-    console.log("👋 Déconnecté.");
+    console.log("ð DÃ©connectÃ©.");
 }
 
 /* ------------------------------------------------------------------
-   8. AFFICHAGE / MASQUAGE DE L'ÉCRAN D'AUTH
+   8. AFFICHAGE / MASQUAGE DE L'ÃCRAN D'AUTH
 ------------------------------------------------------------------ */
 function showAuthScreen(mode = 'login') {
     // Masquer l'app
@@ -166,7 +161,7 @@ function showAuthScreen(mode = 'login') {
     const mobileBtn = document.getElementById('mobile-menu-btn');
     if (mobileBtn) mobileBtn.style.display = 'none';
 
-    // Afficher ou créer l'écran d'auth
+    // Afficher ou crÃ©er l'Ã©cran d'auth
     let authScreen = document.getElementById('auth-screen');
     if (!authScreen) {
         authScreen = createAuthScreen();
@@ -193,7 +188,7 @@ function hideAuthScreen() {
 }
 
 /* ------------------------------------------------------------------
-   9. CRÉATION DYNAMIQUE DE L'ÉCRAN DE LOGIN
+   9. CRÃATION DYNAMIQUE DE L'ÃCRAN DE LOGIN
 ------------------------------------------------------------------ */
 function createAuthScreen() {
     const screen = document.createElement('div');
@@ -215,13 +210,13 @@ function createAuthScreen() {
                     Thera <span style="color: #3ecf8e;">Connect</span>
                 </div>
                 <p style="color: #64748b; font-size: 0.9rem; margin-top: 8px;">
-                    Connectez-vous pour accéder à votre espace
+                    Connectez-vous pour accÃ©der Ã  votre espace
                 </p>
             </div>
 
-            <!-- Notice si Supabase non configuré -->
+            <!-- Notice si Supabase non configurÃ© -->
             <div id="auth-config-notice" style="display:none; background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); border-radius: 8px; padding: 16px; color: #f85149; font-size: 0.85rem; text-align: center; margin-bottom: 16px;">
-                ⚠️ Supabase n'est pas configuré.<br>
+                â ï¸ Supabase n'est pas configurÃ©.<br>
                 <a href="#" onclick="showConfigFromAuth()" style="color: #3ecf8e; text-decoration: underline;">
                     Configurer la connexion cloud
                 </a>
@@ -256,7 +251,7 @@ function createAuthScreen() {
                     <input
                         type="password"
                         id="auth-password"
-                        placeholder="••••••••"
+                        placeholder="â¢â¢â¢â¢â¢â¢â¢â¢"
                         onkeydown="if(event.key==='Enter') signInWithEmail()"
                         style="
                             width: 100%; padding: 12px 14px; border-radius: 8px;
@@ -287,8 +282,8 @@ function createAuthScreen() {
                 </button>
 
                 <p style="color: #475569; font-size: 0.78rem; text-align: center; margin-top: 20px;">
-                    Accès réservé aux utilisateurs autorisés.<br>
-                    Contactez votre administrateur pour créer un compte.
+                    AccÃ¨s rÃ©servÃ© aux utilisateurs autorisÃ©s.<br>
+                    Contactez votre administrateur pour crÃ©er un compte.
                 </p>
             </div>
         </div>
@@ -298,7 +293,7 @@ function createAuthScreen() {
 }
 
 /* ------------------------------------------------------------------
-   10. MISE À JOUR DE LA SIDEBAR AVEC L'UTILISATEUR CONNECTÉ
+   10. MISE Ã JOUR DE LA SIDEBAR AVEC L'UTILISATEUR CONNECTÃ
 ------------------------------------------------------------------ */
 function updateSidebarUser() {
     const header = document.querySelector('.sidebar-header');
@@ -344,7 +339,7 @@ function updateSidebarUser() {
             onmouseover="this.style.background='rgba(248,81,73,0.1)'"
             onmouseout="this.style.background='transparent'"
         >
-            Se déconnecter
+            Se dÃ©connecter
         </button>
     `;
 
@@ -362,9 +357,9 @@ function showAuthError(message) {
 function getAuthErrorMessage(msg) {
     if (msg.includes('Invalid login')) return "Email ou mot de passe incorrect.";
     if (msg.includes('Email not confirmed')) return "Veuillez confirmer votre email avant de vous connecter.";
-    if (msg.includes('Too many requests')) return "Trop de tentatives. Réessayez dans quelques minutes.";
-    if (msg.includes('User not found')) return "Aucun compte trouvé avec cet email.";
-    return "Erreur de connexion. Vérifiez vos identifiants.";
+    if (msg.includes('Too many requests')) return "Trop de tentatives. RÃ©essayez dans quelques minutes.";
+    if (msg.includes('User not found')) return "Aucun compte trouvÃ© avec cet email.";
+    return "Erreur de connexion. VÃ©rifiez vos identifiants.";
 }
 
 function showConfigFromAuth() {
@@ -375,7 +370,7 @@ function showConfigFromAuth() {
 }
 
 /* ------------------------------------------------------------------
-   12. EXPORT — accès au profil courant depuis script.js
+   12. EXPORT â accÃ¨s au profil courant depuis script.js
 ------------------------------------------------------------------ */
 function getCurrentProfil() { return currentProfil; }
 function getCurrentUser() { return currentUser; }
