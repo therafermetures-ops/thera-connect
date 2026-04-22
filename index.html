@@ -373,8 +373,11 @@
 
             <!-- RÉGLAGES -->
             <section id="page-reglages" class="page">
-                <div class="header-actions"><h2>⚙️ Réglages</h2></div>
-                <div class="card shadow">
+                <div class="header-actions"><h2>⚙️ Réglages</h2>
+        <div id="cloud-status-badge" class="status-badge">
+            <span class="dot-online"></span> Cloud Connecté
+        </div></div>
+                <div style="display:none" class="card shadow">
                     <h3>🎨 Personnalisation</h3>
                     <div class="form-group">
                         <label>Nom de l'application :</label>
@@ -386,7 +389,7 @@
                     </div>
                     <button class="btn-primary" onclick="saveAppSettings()">Enregistrer</button>
                 </div>
-                <div class="card shadow" style="margin-top:20px;border-left:4px solid var(--primary);">
+                <div style="display:none" class="card shadow" style="margin-top:20px;border-left:4px solid var(--primary);">
                     <h3>⚡ Connexion Supabase</h3>
                     <div class="form-group">
                         <label>URL du projet :</label>
@@ -414,7 +417,20 @@
                     <h3>🔌 Modules ESP32</h3>
                     <div id="system-modules-list"></div>
                 </div>
-            </section>
+            
+    <div class="card shadow" id="reboot-module-card">
+        <h3>🔄 Redémarrage Module</h3>
+        <div class="form-group">
+            <label>Sélectionner le module :</label>
+            <select id="reboot-module-select">
+                <option value="">-- Choisir --</option>
+            </select>
+        </div>
+        <button class="btn-primary" onclick="rebootModule(document.getElementById('reboot-module-select')?.value)">
+            🔄 Redémarrer
+        </button>
+    </div>
+</section>
 
         </main>
     </div>
