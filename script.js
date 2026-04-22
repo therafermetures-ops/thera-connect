@@ -116,8 +116,8 @@ async function loadAllData() {
         // Logs 15 jours glissants
         const since15d = new Date(Date.now() - 15 * 86400000).toISOString();
         const { data: logsData } = await supabaseClient.from('logs')
-            .select('*').gte('created_at', since15d)
-            .order('created_at', { ascending: false }).limit(300)
+            .select('*').gte('timestamp', since15d)
+            .order('timestamp', { ascending: false }).limit(300)
             .then(r=>r)
             .catch(() => ({ data: [] }));
 
@@ -129,7 +129,7 @@ async function loadAllData() {
     
         if (logsData) {
             state.historique = logsData.map(l => ({
-                id: l.id, timestamp: l.created_at,
+                id: l.id, timestamp: l.timestamp,
                 user: l.operator, access: l.details,
                 action: l.action, source: l.source
             }));
@@ -1429,7 +1429,7 @@ function renderAlertLogs() {
         container.appendChild(logsTitle);
         // Keep only last 15 days
         const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
-        const recentLogs = state.alertLogs.filter(l => new Date(l.created_at || l.ts).getTime() > cutoff);
+        const recentLogs = state.alertLogs.filter(l => new Date(l.timestamp || l.created_at || l.ts).getTime() > cutoff);
         if (!recentLogs.length) {
             container.innerHTML += '<p style="color:var(--text-muted);font-size:.9rem">Aucun événement récent.</p>';
         } else {
@@ -1609,14 +1609,16 @@ let _pingLoopTimer = null;
 function startRealtimeFeatures() {
     clearInterval(_pingLoopTimer);
     _pingAllAccesses();
+    if (window._realtimeSubscribed) return;
+    window._realtimeSubscribed = true;
     _pingLoopTimer = setInterval(() => { _pingAllAccesses().catch(e => console.warn('[Ping ESP32]', e.message)); }, 30000);
 
     if (!supabaseClient) return;
     supabaseClient.channel('realtime-logs')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'logs' }, payload => {
             const l = payload.new;
-            state.historique.unshift({ id: l.id, timestamp: l.created_at, user: l.operator, access: l.details, action: l.action, source: l.source });
-            state.alertLogs.unshift({ timestamp: l.created_at, text: `${l.action} — ${l.details}` });
+            state.historique.unshift({ id: l.id, timestamp: l.timestamp, user: l.operator, access: l.details, action: l.action, source: l.source });
+            state.alertLogs.unshift({ timestamp: l.timestamp, text: `${l.action} — ${l.details}` });
             _updateAlertBadge();
             const active = document.querySelector('.page.active')?.id;
             if (active === 'page-accueil')    renderAccueil();
@@ -1626,6 +1628,8 @@ function startRealtimeFeatures() {
 }
 
 async function _pingAllAccesses() {
+    // Skip HTTP pings when served over HTTPS (Mixed Content blocked)
+    if (window.location.protocol === 'https:') return;
     try {
     if (!state.acces.length) return;
     let changed = false;
