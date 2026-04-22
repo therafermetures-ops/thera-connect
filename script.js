@@ -1077,6 +1077,14 @@ async function saveProfilModifications() {
         showToast('⚠️ Ce code est déjà utilisé', 'error');
         return;
     }
+    const VALID_TYPES = ['super_admin', 'Administrateur', 'Régulier', 'Visiteur'];
+    const rawType = document.getElementById('edit-prof-type').value.trim();
+    const currentProfil = state.profils.find(p => p.id === currentEditingProfilId);
+    const safeType = VALID_TYPES.includes(rawType) ? rawType : (currentProfil?.type || 'Régulier');
+    if (!safeType) {
+        showToast('⚠️ Type de profil invalide', 'error');
+        return;
+    }
     const authorized = Array.from(
         document.querySelectorAll('#profil-permissions-container input:checked')
     ).map(cb => cb.value);
@@ -1085,7 +1093,7 @@ async function saveProfilModifications() {
         name:              document.getElementById('edit-prof-name').value.trim(),
         email:             document.getElementById('edit-prof-email').value.trim(),
         phone:             document.getElementById('edit-prof-phone').value.trim() || null,
-        type:              document.getElementById('edit-prof-type').value,
+        type:              safeType,
         code:              code || null,
         badge:             document.getElementById('edit-prof-badge').value.trim() || null,
         remote:            document.getElementById('edit-prof-remote').value.trim() || null,
