@@ -1,7 +1,6 @@
+
 /* ==========================================================================
-   THERA CONNECT — style.css v2.0
-   Thème : SaaS Pro · Dark industriel · Effets 3D subtils · UX premium
-   Police : DM Sans (titres) + Inter (corps)
+   THERA CONNECT — style.css v4.0
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
@@ -10,13 +9,10 @@
    1. VARIABLES & TOKENS
    ========================================================================== */
 :root {
-    /* — Couleurs principales — */
     --primary:          #3ecf8e;
     --primary-hover:    #2db97a;
     --primary-dim:      rgba(62, 207, 142, 0.12);
     --primary-glow:     rgba(62, 207, 142, 0.25);
-
-    /* — Surfaces dark — */
     --bg-app:           #0d1117;
     --bg-main:          #f5f6f8;
     --sidebar-bg:       #111620;
@@ -24,32 +20,22 @@
     --card-bg:          #ffffff;
     --card-inner:       #f8f9fb;
     --input-bg:         #f0f2f5;
-
-    /* — Typographie — */
     --text-main:        #1a2130;
     --text-sub:         #6b7a96;
     --text-muted:       #9aa5b8;
     --text-white:       #ffffff;
-
-    /* — Bordures — */
     --border:           #e4e8ef;
     --border-strong:    #cdd2db;
-
-    /* — Sémantique — */
     --green:            #3ecf8e;
     --red:              #f85149;
     --orange:           #f0883e;
     --blue:             #4c9cf8;
     --purple:           #a78bfa;
-
-    /* — Tokens layout — */
     --sidebar-width:    268px;
     --radius-sm:        6px;
     --radius:           10px;
     --radius-lg:        14px;
     --radius-xl:        20px;
-
-    /* — Ombres & 3D — */
     --shadow-xs:        0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
     --shadow-sm:        0 2px 8px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
     --shadow-md:        0 4px 16px rgba(0,0,0,0.09), 0 2px 6px rgba(0,0,0,0.06);
@@ -61,8 +47,6 @@
                         0 1px 3px rgba(0,0,0,0.06);
     --shadow-btn-3d:    0 2px 0 rgba(0,0,0,0.15),
                         0 1px 0 rgba(255,255,255,0.12) inset;
-
-    /* — Transitions — */
     --ease:             cubic-bezier(0.4, 0, 0.2, 1);
     --ease-spring:      cubic-bezier(0.34, 1.56, 0.64, 1);
     --duration:         200ms;
@@ -72,9 +56,7 @@
    2. RESET & BASE
    ========================================================================== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { scroll-behavior: smooth; }
-
 body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-size: 15px;
@@ -82,28 +64,22 @@ body {
     background: var(--bg-main);
     color: var(--text-main);
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
 }
-
 h1, h2, h3, h4, h5 {
     font-family: 'DM Sans', system-ui, sans-serif;
     font-weight: 700;
     line-height: 1.25;
     color: var(--text-main);
 }
-
 h1 { font-size: 1.75rem; letter-spacing: -0.5px; }
 h2 { font-size: 1.35rem; letter-spacing: -0.3px; }
 h3 { font-size: 1.05rem; }
-
 a { color: var(--primary); text-decoration: none; }
-a:hover { text-decoration: underline; }
-
 input, select, textarea, button { font-family: inherit; }
 
 /* ==========================================================================
-   3. LAYOUT PRINCIPAL
+   3. LAYOUT
    ========================================================================== */
 .main-layout {
     display: flex;
@@ -122,35 +98,23 @@ input, select, textarea, button { font-family: inherit; }
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    transition: transform var(--duration) var(--ease),
-                width var(--duration) var(--ease);
+    transition: transform var(--duration) var(--ease), width var(--duration) var(--ease);
     z-index: 1000;
     border-right: 1px solid var(--sidebar-border);
-    /* Effet 3D — séparation légère avec ombre portée */
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18),
-                1px 0 0 rgba(255,255,255,0.03);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.18), 1px 0 0 rgba(255,255,255,0.03);
 }
 
-/* Texture subtile sur la sidebar */
 .sidebar::before {
     content: '';
     position: absolute;
     inset: 0;
     width: var(--sidebar-width);
-    background: repeating-linear-gradient(
-        180deg,
-        transparent 0px,
-        transparent 39px,
-        rgba(255,255,255,0.015) 39px,
-        rgba(255,255,255,0.015) 40px
-    );
+    background: repeating-linear-gradient(180deg, transparent 0px, transparent 39px, rgba(255,255,255,0.015) 39px, rgba(255,255,255,0.015) 40px);
     pointer-events: none;
     z-index: 0;
 }
-
 .sidebar > * { position: relative; z-index: 1; }
 
-/* — Header sidebar — */
 .sidebar-header {
     padding: 28px 22px 20px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
@@ -167,28 +131,22 @@ input, select, textarea, button { font-family: inherit; }
     gap: 6px;
     color: white;
 }
-
 .logo-text span { color: var(--primary); }
-
-/* Logo dot animé */
 .logo-text::before {
     content: '';
     display: block;
-    width: 8px;
-    height: 8px;
+    width: 8px; height: 8px;
     border-radius: 50%;
     background: var(--primary);
     box-shadow: 0 0 8px var(--primary-glow);
     animation: pulse-dot 2.5s ease-in-out infinite;
     flex-shrink: 0;
 }
-
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--primary-glow); }
     50%       { opacity: 0.6; box-shadow: 0 0 14px var(--primary-glow); }
 }
 
-/* — Navigation — */
 .sidebar-nav {
     flex: 1;
     padding: 16px 10px;
@@ -215,52 +173,40 @@ input, select, textarea, button { font-family: inherit; }
     position: relative;
     text-align: left;
 }
-
-.nav-btn i {
-    width: 17px;
-    height: 17px;
-    stroke-width: 2px;
-    flex-shrink: 0;
-    opacity: 0.8;
-    transition: opacity var(--duration);
-}
-
-.nav-btn:hover {
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.9);
-    transform: translateX(2px);
-}
-
+.nav-btn i { width: 17px; height: 17px; stroke-width: 2px; flex-shrink: 0; opacity: 0.8; transition: opacity var(--duration); }
+.nav-btn:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); transform: translateX(2px); }
 .nav-btn:hover i { opacity: 1; }
-
 .nav-btn.active {
     background: linear-gradient(135deg, var(--primary) 0%, #2db97a 100%);
     color: white;
     font-weight: 600;
-    /* Effet 3D sur bouton actif */
-    box-shadow: 0 4px 12px rgba(62, 207, 142, 0.35),
-                0 1px 0 rgba(255,255,255,0.2) inset,
-                0 -1px 0 rgba(0,0,0,0.15) inset;
-    transform: translateX(0);
+    box-shadow: 0 4px 12px rgba(62,207,142,0.35), 0 1px 0 rgba(255,255,255,0.2) inset, 0 -1px 0 rgba(0,0,0,0.15) inset;
 }
-
 .nav-btn.active i { opacity: 1; }
-
-/* Indicateur actif — trait vertical */
 .nav-btn.active::before {
     content: '';
     position: absolute;
-    left: -10px;
-    top: 50%;
+    left: -10px; top: 50%;
     transform: translateY(-50%);
-    width: 3px;
-    height: 18px;
+    width: 3px; height: 18px;
     background: var(--primary);
     border-radius: 0 3px 3px 0;
     box-shadow: 0 0 8px var(--primary-glow);
 }
 
-.admin-only { display: none !important; }
+/* Badge alerte dans la nav */
+.alert-nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 99px;
+    line-height: 1.4;
+    min-width: 18px;
+    text-align: center;
+}
 
 /* ==========================================================================
    5. ZONE DE CONTENU
@@ -270,14 +216,12 @@ input, select, textarea, button { font-family: inherit; }
     padding: 36px 40px;
     overflow-y: auto;
     background: var(--bg-main);
-    /* Fond avec texture ultra-légère */
     background-image:
         radial-gradient(circle at 20% 0%, rgba(62,207,142,0.03) 0%, transparent 50%),
         radial-gradient(circle at 80% 100%, rgba(76,156,248,0.03) 0%, transparent 50%);
     scrollbar-width: thin;
     scrollbar-color: #d0d5dd transparent;
 }
-
 .content-area::-webkit-scrollbar { width: 6px; }
 .content-area::-webkit-scrollbar-thumb { background: #d0d5dd; border-radius: 99px; }
 
@@ -285,20 +229,12 @@ input, select, textarea, button { font-family: inherit; }
    6. PAGES & ANIMATIONS
    ========================================================================== */
 .page { display: none; }
-.page.active {
-    display: block;
-    animation: pageEnter 0.35s var(--ease) both;
-}
-
+.page.active { display: block; animation: pageEnter 0.35s var(--ease) both; }
 @keyframes pageEnter {
     from { opacity: 0; transform: translateY(10px); }
     to   { opacity: 1; transform: translateY(0); }
 }
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* ==========================================================================
    7. PAGE HEADER
@@ -310,9 +246,7 @@ input, select, textarea, button { font-family: inherit; }
     margin-bottom: 28px;
     gap: 16px;
 }
-
 .page-header h1 { margin: 0; }
-
 .header-actions {
     display: flex;
     align-items: center;
@@ -320,11 +254,10 @@ input, select, textarea, button { font-family: inherit; }
     gap: 12px;
     margin-bottom: 24px;
 }
-
 .header-actions h2 { margin: 0; }
 
 /* ==========================================================================
-   8. CARTES — Effet 3D subtil
+   8. CARTES
    ========================================================================== */
 .card {
     background: var(--card-bg);
@@ -333,33 +266,20 @@ input, select, textarea, button { font-family: inherit; }
     padding: 22px 24px;
     margin-bottom: 20px;
     box-shadow: var(--shadow-card-3d);
-    transition: transform var(--duration) var(--ease),
-                box-shadow var(--duration) var(--ease);
+    transition: transform var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
     position: relative;
     overflow: hidden;
 }
-
-/* Reflet 3D en haut de la carte */
 .card::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(255,255,255,0.8) 30%,
-        rgba(255,255,255,0.8) 70%,
-        transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 30%, rgba(255,255,255,0.8) 70%, transparent 100%);
     pointer-events: none;
 }
-
 .card.shadow { box-shadow: var(--shadow-md); }
-
-.card:hover {
-    transform: translateY(-2px) perspective(600px) rotateX(0.5deg);
-    box-shadow: var(--shadow-lg);
-}
-
+.card:hover { transform: translateY(-2px) perspective(600px) rotateX(0.5deg); box-shadow: var(--shadow-lg); }
 .card-inner {
     background: var(--card-inner);
     border: 1px solid var(--border);
@@ -369,7 +289,7 @@ input, select, textarea, button { font-family: inherit; }
 }
 
 /* ==========================================================================
-   9. STAT CARDS (Tableau de bord)
+   9. STAT CARDS
    ========================================================================== */
 .grid-stats {
     display: grid;
@@ -377,46 +297,22 @@ input, select, textarea, button { font-family: inherit; }
     gap: 16px;
     margin-bottom: 28px;
 }
-
-.stat-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 20px 22px;
-    cursor: default;
-}
-
-.stat-card i {
-    width: 40px;
-    height: 40px;
-    padding: 10px;
-    border-radius: var(--radius);
-    flex-shrink: 0;
-}
-
-.icon-blue  { background: rgba(76,156,248,0.12); color: var(--blue);   box-shadow: 0 2px 8px rgba(76,156,248,0.2); }
-.icon-green { background: rgba(62,207,142,0.12); color: var(--green);  box-shadow: 0 2px 8px rgba(62,207,142,0.2); }
-.icon-red   { background: rgba(248,81,73,0.12);  color: var(--red);    box-shadow: 0 2px 8px rgba(248,81,73,0.2); }
-.icon-orange{ background: rgba(240,136,62,0.12); color: var(--orange); box-shadow: 0 2px 8px rgba(240,136,62,0.2); }
-
+.stat-card { display: flex; align-items: center; gap: 16px; padding: 20px 22px; cursor: default; }
+.stat-card i { width: 40px; height: 40px; padding: 10px; border-radius: var(--radius); flex-shrink: 0; }
+.icon-blue   { background: rgba(76,156,248,0.12); color: var(--blue);   box-shadow: 0 2px 8px rgba(76,156,248,0.2); }
+.icon-green  { background: rgba(62,207,142,0.12); color: var(--green);  box-shadow: 0 2px 8px rgba(62,207,142,0.2); }
+.icon-red    { background: rgba(248,81,73,0.12);  color: var(--red);    box-shadow: 0 2px 8px rgba(248,81,73,0.2); }
+.icon-orange { background: rgba(240,136,62,0.12); color: var(--orange); box-shadow: 0 2px 8px rgba(240,136,62,0.2); }
 .stat-label {
     display: block;
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--text-sub);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 3px;
+    font-size: 0.78rem; font-weight: 500; color: var(--text-sub);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px;
 }
-
 .stat-value {
     display: block;
     font-family: 'DM Sans', sans-serif;
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: -0.5px;
-    line-height: 1;
+    font-size: 1.8rem; font-weight: 700; color: var(--text-main);
+    letter-spacing: -0.5px; line-height: 1;
 }
 
 /* ==========================================================================
@@ -428,35 +324,26 @@ input, select, textarea, button { font-family: inherit; }
     gap: 16px;
     margin-top: 12px;
 }
-
 .responsive-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 14px;
 }
-
-/* Tuile d'accès (favoris) */
 .access-tile {
     padding: 20px;
     cursor: pointer;
     border-left: 3px solid var(--primary);
     transition: all var(--duration) var(--ease);
 }
-
 .access-tile:hover {
-    border-left-color: var(--primary);
     transform: translateY(-3px) perspective(500px) rotateX(1deg);
     box-shadow: var(--shadow-lg), 0 0 0 1px rgba(62,207,142,0.15);
 }
-
 .tile-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .tile-info h4 { font-size: 0.95rem; margin: 0 0 4px; }
-
 .tile-body { margin-bottom: 14px; }
-
 .tile-actions { display: flex; gap: 8px; }
 
-/* Carte item (liste) */
 .item-card {
     display: flex;
     align-items: center;
@@ -466,47 +353,29 @@ input, select, textarea, button { font-family: inherit; }
     border-left: 3px solid transparent;
     transition: all var(--duration) var(--ease);
 }
-
 .item-card:hover {
     border-left-color: var(--primary);
     transform: translateX(3px);
     box-shadow: var(--shadow-md), -4px 0 0 var(--primary-dim);
 }
-
-.main-info {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
+.main-info { display: flex; align-items: center; gap: 14px; }
 .avatar {
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border-radius: var(--radius);
     background: var(--primary-dim);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     color: var(--primary);
     flex-shrink: 0;
-    /* Effet 3D sur l'avatar */
-    box-shadow: 0 2px 6px rgba(62,207,142,0.2),
-                0 1px 0 rgba(255,255,255,0.8) inset;
+    box-shadow: 0 2px 6px rgba(62,207,142,0.2), 0 1px 0 rgba(255,255,255,0.8) inset;
 }
-
 .avatar i { width: 18px; height: 18px; }
-
 .card-arrow { color: var(--text-muted); }
 .card-arrow i { width: 16px; height: 16px; }
 
 /* ==========================================================================
    11. BOUTONS
    ========================================================================== */
-.btn-primary,
-.btn-success,
-.btn-danger,
-.btn-outline,
-.btn-cancel {
+.btn-primary, .btn-success, .btn-danger, .btn-outline, .btn-cancel {
     display: inline-flex;
     align-items: center;
     gap: 7px;
@@ -521,666 +390,488 @@ input, select, textarea, button { font-family: inherit; }
     white-space: nowrap;
     position: relative;
 }
+.btn-primary:active, .btn-success:active, .btn-danger:active { transform: translateY(1px); }
 
-/* Effet press 3D sur tous les boutons */
-.btn-primary:active,
-.btn-success:active,
-.btn-danger:active { transform: translateY(1px); }
-
-/* — Primaire (vert) — */
 .btn-primary {
     background: linear-gradient(135deg, var(--primary) 0%, #2db97a 100%);
     color: white;
     box-shadow: var(--shadow-btn-3d), 0 4px 12px rgba(62,207,142,0.3);
 }
-.btn-primary:hover {
-    background: linear-gradient(135deg, #4ad9a0 0%, var(--primary) 100%);
-    box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(62,207,142,0.4);
-    transform: translateY(-1px);
-}
+.btn-primary:hover { background: linear-gradient(135deg, #4ad9a0 0%, var(--primary) 100%); box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(62,207,142,0.4); transform: translateY(-1px); }
 
-/* — Succès (vert foncé) — */
 .btn-success {
     background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
     color: white;
     box-shadow: var(--shadow-btn-3d), 0 4px 12px rgba(34,197,94,0.3);
 }
-.btn-success:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(34,197,94,0.4);
-}
+.btn-success:hover { transform: translateY(-1px); box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(34,197,94,0.4); }
 
-/* — Danger (rouge) — */
 .btn-danger {
     background: linear-gradient(135deg, #f85149 0%, #d73a3a 100%);
     color: white;
     box-shadow: var(--shadow-btn-3d), 0 4px 12px rgba(248,81,73,0.3);
 }
-.btn-danger:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(248,81,73,0.4);
-}
+.btn-danger:hover { transform: translateY(-1px); box-shadow: var(--shadow-btn-3d), 0 6px 18px rgba(248,81,73,0.4); }
 
-/* — Outline (neutre) — */
 .btn-outline {
     background: white;
     border: 1px solid var(--border-strong);
     color: var(--text-sub);
     box-shadow: var(--shadow-xs);
 }
-.btn-outline:hover {
-    background: var(--card-inner);
-    border-color: var(--border-strong);
-    color: var(--text-main);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-}
+.btn-outline:hover { background: var(--card-inner); color: var(--text-main); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
 
-/* — Cancel (gris neutre) — */
-.btn-cancel {
-    background: var(--card-inner);
-    border: 1px solid var(--border);
-    color: var(--text-sub);
-}
+.btn-cancel { background: var(--card-inner); border: 1px solid var(--border); color: var(--text-sub); }
 .btn-cancel:hover { background: var(--border); color: var(--text-main); }
 
-/* — Bouton action primaire (tuile) — */
 .btn-action-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    border-radius: var(--radius-sm);
-    font-size: 0.83rem;
-    font-weight: 600;
-    background: var(--primary-dim);
-    border: 1px solid rgba(62,207,142,0.25);
-    color: var(--primary);
-    cursor: pointer;
-    transition: all var(--duration) var(--ease);
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: var(--radius-sm);
+    font-size: 0.83rem; font-weight: 600;
+    background: var(--primary-dim); border: 1px solid rgba(62,207,142,0.25);
+    color: var(--primary); cursor: pointer; transition: all var(--duration) var(--ease);
 }
-.btn-action-primary:hover {
-    background: var(--primary);
-    color: white;
-    box-shadow: 0 4px 12px var(--primary-glow);
-    transform: translateY(-1px);
-}
+.btn-action-primary:hover { background: var(--primary); color: white; box-shadow: 0 4px 12px var(--primary-glow); transform: translateY(-1px); }
 
-/* — Bouton cercle "+" — */
 .btn-add-circle {
-    width: 38px;
-    height: 38px;
+    width: 38px; height: 38px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), #2db97a);
-    color: white;
-    font-size: 1.4rem;
-    font-weight: 300;
-    line-height: 1;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: white; font-size: 1.4rem; font-weight: 300; line-height: 1;
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
     box-shadow: 0 4px 12px var(--primary-glow), 0 1px 0 rgba(255,255,255,0.2) inset;
     transition: all var(--duration) var(--ease-spring);
     flex-shrink: 0;
 }
-.btn-add-circle:hover {
-    transform: scale(1.1) rotate(90deg);
-    box-shadow: 0 6px 18px var(--primary-glow);
-}
+.btn-add-circle:hover { transform: scale(1.1) rotate(90deg); box-shadow: 0 6px 18px var(--primary-glow); }
 
-/* — Petits boutons (tables) — */
 .btn-small {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 5px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 0.78rem;
-    font-weight: 600;
-    border: 1px solid var(--border);
-    background: white;
-    color: var(--text-sub);
-    cursor: pointer;
-    transition: all var(--duration);
-    box-shadow: var(--shadow-xs);
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: var(--radius-sm);
+    font-size: 0.78rem; font-weight: 600;
+    border: 1px solid var(--border); background: white; color: var(--text-sub);
+    cursor: pointer; transition: all var(--duration); box-shadow: var(--shadow-xs);
 }
-.btn-small:hover {
-    background: var(--primary);
-    color: white;
-    border-color: transparent;
-    transform: translateY(-1px);
-}
+.btn-small:hover { background: var(--primary); color: white; border-color: transparent; transform: translateY(-1px); }
 
 /* ==========================================================================
-   12. FORMULAIRES & INPUTS
+   12. FORMULAIRES
    ========================================================================== */
-.form-group {
-    margin-bottom: 16px;
-}
-
+.form-group { margin-bottom: 16px; }
 .form-group label {
-    display: block;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--text-sub);
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-sub);
+    margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;
 }
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="time"],
-input[type="datetime-local"],
-select,
-textarea {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--input-bg);
-    color: var(--text-main);
-    font-size: 0.9rem;
-    font-family: inherit;
+input[type="text"], input[type="email"], input[type="password"],
+input[type="number"], input[type="time"], input[type="datetime-local"],
+input[type="tel"], select, textarea {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid var(--border); border-radius: var(--radius);
+    background: var(--input-bg); color: var(--text-main);
+    font-size: 0.9rem; font-family: inherit;
     transition: border-color var(--duration), box-shadow var(--duration), background var(--duration);
-    outline: none;
-    appearance: none;
-    /* Effet 3D sur input */
+    outline: none; appearance: none;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04) inset, 0 1px 0 rgba(255,255,255,0.8);
 }
-
-input:focus,
-select:focus,
-textarea:focus {
-    border-color: var(--primary);
-    background: white;
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary); background: white;
     box-shadow: 0 0 0 3px var(--primary-dim), 0 1px 3px rgba(0,0,0,0.04) inset;
 }
-
-input:disabled,
-select:disabled {
-    background: #f1f3f7;
-    color: var(--text-muted);
-    cursor: not-allowed;
-    border-color: var(--border);
-    box-shadow: none;
+input:disabled, select:disabled {
+    background: #f1f3f7; color: var(--text-muted);
+    cursor: not-allowed; border-color: var(--border); box-shadow: none;
 }
-
 select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7a96' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 36px;
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
 }
-
-/* Barre de recherche */
 .search-bar-container { padding-bottom: 16px; }
-
 #search-key-input {
-    background: white;
-    border: 1.5px solid var(--border);
+    background: white; border: 1.5px solid var(--border);
     padding: 10px 16px 10px 40px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7a96' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: 14px center;
-    width: 100%;
-    margin-bottom: 12px;
+    background-repeat: no-repeat; background-position: 14px center;
+    width: 100%; margin-bottom: 12px;
 }
 
 /* ==========================================================================
-   13. CHIPS & FILTRES
+   13. CHIPS
    ========================================================================== */
-.filter-chips {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
+.filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
-    padding: 5px 14px;
-    border-radius: 99px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    border: 1.5px solid var(--border);
-    background: white;
-    color: var(--text-sub);
-    cursor: pointer;
-    transition: all var(--duration) var(--ease);
+    padding: 5px 14px; border-radius: 99px;
+    font-size: 0.8rem; font-weight: 600;
+    border: 1.5px solid var(--border); background: white; color: var(--text-sub);
+    cursor: pointer; transition: all var(--duration) var(--ease);
 }
-
-.chip:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-.chip.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: white;
-    box-shadow: 0 2px 8px var(--primary-glow);
-}
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip.active { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 2px 8px var(--primary-glow); }
 
 /* ==========================================================================
-   14. TABLEAUX PRO
+   14. TABLEAUX
    ========================================================================== */
 .table-responsive { overflow-x: auto; }
-
-.pro-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.875rem;
-}
-
+.pro-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 .pro-table th {
-    background: var(--card-inner);
-    color: var(--text-sub);
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    padding: 11px 16px;
-    text-align: left;
-    border-bottom: 2px solid var(--border);
-    white-space: nowrap;
+    background: var(--card-inner); color: var(--text-sub);
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em;
+    padding: 11px 16px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap;
 }
-
 .pro-table td {
-    padding: 13px 16px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-main);
-    vertical-align: middle;
-    transition: background var(--duration);
+    padding: 13px 16px; border-bottom: 1px solid var(--border);
+    color: var(--text-main); vertical-align: middle; transition: background var(--duration);
 }
-
 .pro-table tr:last-child td { border-bottom: none; }
-
-.pro-table tbody tr:hover td {
-    background: rgba(62,207,142,0.04);
-}
+.pro-table tbody tr:hover td { background: rgba(62,207,142,0.04); }
 
 /* ==========================================================================
    15. BADGES & INDICATEURS
    ========================================================================== */
-.badge-info,
-.badge-ouvrir,
-.badge-fermer,
-.badge-alerte,
-.badge-system {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+.badge-info, .badge-ouvrir, .badge-fermer, .badge-alerte, .badge-system {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 99px;
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.03em;
 }
-
 .badge-info    { background: rgba(76,156,248,0.12);  color: var(--blue);   }
 .badge-ouvrir  { background: rgba(62,207,142,0.12);  color: var(--green);  }
 .badge-fermer  { background: rgba(248,81,73,0.12);   color: var(--red);    }
 .badge-alerte  { background: rgba(240,136,62,0.12);  color: var(--orange); }
 .badge-system  { background: rgba(167,139,250,0.12); color: var(--purple); }
 
-/* Indicateur statut (point animé) */
 .status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
     padding: 7px 14px;
-    background: rgba(62,207,142,0.08);
-    border: 1px solid rgba(62,207,142,0.2);
-    border-radius: 99px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--green);
+    background: rgba(62,207,142,0.08); border: 1px solid rgba(62,207,142,0.2);
+    border-radius: 99px; font-size: 0.8rem; font-weight: 600; color: var(--green);
 }
-
 .dot-online {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--green);
-    box-shadow: 0 0 0 0 var(--primary-glow);
-    animation: ping 2s ease-in-out infinite;
-    flex-shrink: 0;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 0 0 var(--primary-glow);
+    animation: ping 2s ease-in-out infinite; flex-shrink: 0;
 }
-
 @keyframes ping {
     0%   { box-shadow: 0 0 0 0 rgba(62,207,142,0.5); }
     70%  { box-shadow: 0 0 0 7px rgba(62,207,142,0); }
     100% { box-shadow: 0 0 0 0 rgba(62,207,142,0); }
 }
-
 .status-indicator {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--green);
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.75rem; font-weight: 600; color: var(--green);
 }
 .status-indicator::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
+    content: ''; width: 6px; height: 6px;
+    border-radius: 50%; background: currentColor;
 }
 
 /* ==========================================================================
-   16. IP BADGE (Codes / Adresses)
+   16. ESP32 BADGE
+   ========================================================================== */
+.esp32-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px;
+    font-size: 0.78rem; font-weight: 700;
+}
+.esp32-online  { background: rgba(62,207,142,0.12); color: var(--green); border: 1px solid rgba(62,207,142,0.3); }
+.esp32-offline { background: rgba(248,81,73,0.10);  color: var(--red);   border: 1px solid rgba(248,81,73,0.25); }
+.esp32-pinging { background: rgba(240,136,62,0.10); color: var(--orange);border: 1px solid rgba(240,136,62,0.25); }
+.esp32-unknown { background: var(--card-inner); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ==========================================================================
+   17. IP BADGE
    ========================================================================== */
 .ip-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 10px;
-    background: var(--card-inner);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.8rem;
-    color: var(--text-sub);
-    margin-top: 3px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; background: var(--card-inner);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'DM Mono', monospace; font-size: 0.8rem; color: var(--text-sub); margin-top: 3px;
 }
-
 .ip-badge i { width: 12px; height: 12px; }
 
 /* ==========================================================================
-   17. MODALES
+   18. MODALES
    ========================================================================== */
 .modal {
     display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(13, 17, 23, 0.7);
+    position: fixed; inset: 0;
+    background: rgba(13,17,23,0.7);
     backdrop-filter: blur(6px);
     z-index: 2000;
-    align-items: center;
-    justify-content: center;
+    align-items: center; justify-content: center;
     padding: 20px;
 }
-
 .modal-content {
     background: var(--card-bg);
     border-radius: var(--radius-xl);
-    padding: 32px;
-    width: 100%;
-    max-width: 440px;
+    padding: 32px; width: 100%; max-width: 440px;
     box-shadow: 0 24px 64px rgba(0,0,0,0.2), 0 1px 0 rgba(255,255,255,0.8) inset;
     border: 1px solid var(--border);
     animation: modalIn 0.25s var(--ease-spring) both;
 }
-
 @keyframes modalIn {
     from { opacity: 0; transform: scale(0.93) translateY(12px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
 }
-
-.modal-content h3 {
-    margin-bottom: 6px;
-    font-size: 1.1rem;
-}
-
-.modal-content p {
-    color: var(--text-sub);
-    margin-bottom: 20px;
-    font-size: 0.9rem;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-}
-
+.modal-content h3 { margin-bottom: 6px; font-size: 1.1rem; }
+.modal-content p { color: var(--text-sub); margin-bottom: 20px; font-size: 0.9rem; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
 .modal-actions .btn-primary,
 .modal-actions .btn-danger,
 .modal-actions .btn-success { flex: 1; justify-content: center; }
 
 /* ==========================================================================
-   18. PLANNING — SÉLECTEUR DE JOURS
+   19. SLIDER CONFIRMATION (OUVRIR)
    ========================================================================== */
-.days-selector {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin: 10px 0;
-}
-
-.days-selector label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--text-sub);
-    text-transform: uppercase !important;
-    letter-spacing: 0;
-}
-
-.days-selector input[type="checkbox"] {
-    width: 34px;
-    height: 34px;
-    border-radius: var(--radius-sm);
-    border: 2px solid var(--border);
+.slider-track {
+    position: relative;
+    height: 52px;
     background: var(--card-inner);
-    cursor: pointer;
-    appearance: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all var(--duration) var(--ease);
-    box-shadow: var(--shadow-xs);
+    border: 1.5px solid var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    user-select: none;
+    touch-action: none;
 }
-
-.days-selector input[type="checkbox"]:checked {
-    background: var(--primary);
-    border-color: var(--primary);
-    box-shadow: 0 2px 8px var(--primary-glow);
+.slider-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(62,207,142,0.25), rgba(62,207,142,0.5));
+    border-radius: 99px;
+    transition: background 0.3s;
+    pointer-events: none;
 }
-
-.days-selector input[type="checkbox"]:checked::after {
-    content: '✓';
-    font-size: 14px;
-    color: white;
-    font-weight: 700;
+.slider-fill.confirmed {
+    background: linear-gradient(90deg, rgba(62,207,142,0.5), var(--primary));
+    width: 100% !important;
 }
-
-.time-range {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 12px;
-    font-size: 0.85rem;
-    color: var(--text-sub);
+.slider-label {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-sub);
+    pointer-events: none;
+    transition: opacity 0.2s;
 }
-
-.time-range input[type="time"] {
-    width: auto;
-    padding: 8px 12px;
-    font-family: 'DM Mono', monospace;
+.slider-thumb {
+    position: absolute;
+    left: 4px; top: 4px; bottom: 4px;
+    width: 44px;
+    background: linear-gradient(135deg, var(--primary), #2db97a);
+    border-radius: 99px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1.1rem; font-weight: 700;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(62,207,142,0.4), 0 1px 0 rgba(255,255,255,0.2) inset;
+    transition: transform 0.4s var(--ease-spring);
+    will-change: transform;
+    touch-action: none;
 }
+.slider-thumb:active { cursor: grabbing; }
 
 /* ==========================================================================
-   19. FOOTER ACTIONS (Fiche édition)
+   20. TOAST
    ========================================================================== */
-.edit-footer-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border);
-}
-
-.edit-footer-actions .btn-danger {
-    background: rgba(248,81,73,0.08);
-    border: 1px solid rgba(248,81,73,0.2);
-    color: var(--red);
-    box-shadow: none;
-    font-size: 0.83rem;
-}
-.edit-footer-actions .btn-danger:hover {
-    background: var(--red);
+.toast {
+    position: fixed;
+    bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    background: #1a2130;
     color: white;
-    box-shadow: 0 4px 12px rgba(248,81,73,0.3);
+    padding: 10px 22px;
+    border-radius: 99px;
+    font-size: 0.88rem; font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    animation: toastIn 0.3s var(--ease-spring) both;
+    white-space: nowrap;
+}
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 /* ==========================================================================
-   20. NOTICE D'EXPIRATION
+   21. PLANNING — SÉLECTEUR DE JOURS
+   ========================================================================== */
+.days-selector { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.days-selector label {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    cursor: pointer; font-size: 0.75rem; font-weight: 700; color: var(--text-sub);
+    text-transform: uppercase !important;
+}
+.days-selector input[type="checkbox"] {
+    width: 34px; height: 34px; border-radius: var(--radius-sm);
+    border: 2px solid var(--border); background: var(--card-inner);
+    cursor: pointer; appearance: none;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--duration) var(--ease); box-shadow: var(--shadow-xs);
+}
+.days-selector input[type="checkbox"]:checked { background: var(--primary); border-color: var(--primary); box-shadow: 0 2px 8px var(--primary-glow); }
+.days-selector input[type="checkbox"]:checked::after { content: '✓'; font-size: 14px; color: white; font-weight: 700; }
+.time-range { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 0.85rem; color: var(--text-sub); }
+.time-range input[type="time"] { width: auto; padding: 8px 12px; font-family: 'DM Mono', monospace; }
+
+/* ==========================================================================
+   22. FOOTER ACTIONS
+   ========================================================================== */
+.edit-footer-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+.edit-footer-actions .btn-danger {
+    background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2);
+    color: var(--red); box-shadow: none; font-size: 0.83rem;
+}
+.edit-footer-actions .btn-danger:hover { background: var(--red); color: white; box-shadow: 0 4px 12px rgba(248,81,73,0.3); }
+
+/* ==========================================================================
+   23. ALERTES
+   ========================================================================== */
+.alert-item {
+    padding: 12px 14px; margin-bottom: 8px;
+    border-radius: var(--radius); border-left: 3px solid var(--orange);
+    background: rgba(240,136,62,0.06);
+}
+.alert-item small { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 3px; }
+.alert-rule-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; margin-bottom: 6px;
+    border-radius: var(--radius); background: var(--card-inner);
+    border: 1px solid var(--border); font-size: 0.88rem;
+}
+.alert-rule-item:last-child { margin-bottom: 0; }
+.list-container { display: flex; flex-direction: column; gap: 0; }
+
+/* ==========================================================================
+   24. EXPIRATION
    ========================================================================== */
 .expiry-notice {
-    background: var(--primary-dim);
-    color: var(--primary);
-    padding: 14px 18px;
-    border-radius: var(--radius);
-    text-align: center;
-    font-weight: 600;
-    margin-top: 20px;
-    border: 1px dashed rgba(62,207,142,0.4);
+    background: var(--primary-dim); color: var(--primary);
+    padding: 14px 18px; border-radius: var(--radius); text-align: center;
+    font-weight: 600; margin-top: 20px; border: 1px dashed rgba(62,207,142,0.4);
     font-size: 0.88rem;
 }
 
 /* ==========================================================================
-   21. ÉTAT VIDE (Empty state)
+   25. EMPTY STATE
    ========================================================================== */
 .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 24px;
-    color: var(--text-muted);
-    text-align: center;
-    border: 2px dashed var(--border);
-    border-radius: var(--radius-lg);
-    background: var(--card-inner);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 48px 24px; color: var(--text-muted); text-align: center;
+    border: 2px dashed var(--border); border-radius: var(--radius-lg); background: var(--card-inner);
 }
-
 .empty-state p { font-size: 0.9rem; margin: 0; }
 
 /* ==========================================================================
-   22. ANIMATIONS ENTRÉE (Stagger)
+   26. ANIMATIONS STAGGER
    ========================================================================== */
-.animate-in {
-    animation: itemIn 0.3s var(--ease-spring) both;
-}
-
-.animate-in:nth-child(1)  { animation-delay: 0.04s; }
-.animate-in:nth-child(2)  { animation-delay: 0.08s; }
-.animate-in:nth-child(3)  { animation-delay: 0.12s; }
-.animate-in:nth-child(4)  { animation-delay: 0.16s; }
-.animate-in:nth-child(5)  { animation-delay: 0.20s; }
-.animate-in:nth-child(6)  { animation-delay: 0.24s; }
-
+.animate-in { animation: itemIn 0.3s var(--ease-spring) both; }
+.animate-in:nth-child(1) { animation-delay: 0.04s; }
+.animate-in:nth-child(2) { animation-delay: 0.08s; }
+.animate-in:nth-child(3) { animation-delay: 0.12s; }
+.animate-in:nth-child(4) { animation-delay: 0.16s; }
+.animate-in:nth-child(5) { animation-delay: 0.20s; }
+.animate-in:nth-child(6) { animation-delay: 0.24s; }
 @keyframes itemIn {
     from { opacity: 0; transform: translateY(12px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ==========================================================================
-   23. BOUTON MOBILE MENU
+   27. HR
+   ========================================================================== */
+hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* ==========================================================================
+   28. BOUTON MOBILE MENU
    ========================================================================== */
 #mobile-menu-btn {
     display: none;
-    position: fixed;
-    top: 14px;
-    left: 14px;
-    z-index: 1100;
-    width: 40px;
-    height: 40px;
-    border-radius: var(--radius);
-    background: var(--sidebar-bg);
-    color: white;
-    border: 1px solid rgba(255,255,255,0.1);
-    font-size: 1.1rem;
-    cursor: pointer;
-    box-shadow: var(--shadow-md);
-    transition: all var(--duration);
+    position: fixed; top: 14px; left: 14px; z-index: 1100;
+    width: 40px; height: 40px; border-radius: var(--radius);
+    background: var(--sidebar-bg); color: white;
+    border: 1px solid rgba(255,255,255,0.1); font-size: 1.1rem;
+    cursor: pointer; box-shadow: var(--shadow-md); transition: all var(--duration);
 }
-
 #mobile-menu-btn:hover { background: #1c2333; }
-
-#btn-back {
-    margin-bottom: 20px;
-    font-size: 0.85rem;
-}
+#btn-back { margin-bottom: 20px; font-size: 0.85rem; }
 
 /* ==========================================================================
-   24. ALERTES — page-alerts
+   29. PLANNING CALENDRIER
    ========================================================================== */
-.alert-item {
-    padding: 12px 14px;
-    margin-bottom: 8px;
-    border-radius: var(--radius);
-    border-left: 3px solid var(--orange);
-    background: rgba(240,136,62,0.06);
+#modal-planning .modal-content {
+    max-width: 900px; width: 95vw; max-height: 90vh;
+    display: flex; flex-direction: column; padding: 24px; overflow: hidden;
 }
-
-.alert-item small {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 3px;
+.cal-th-empty { width: 52px; }
+.cal-th-day {
+    text-align: center; font-size: .75rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-sub); padding: 6px 0;
 }
-
-.list-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+#planning-calendar-grid { overflow-y: auto; flex: 1; border: 1px solid var(--border); border-radius: var(--radius); }
+.cal-layout { display: grid; grid-template-columns: 52px repeat(7, 1fr); gap: 0; min-width: 600px; }
+.cal-hours-col { border-right: 1px solid var(--border); background: var(--card-inner); }
+.cal-hour-label {
+    display: flex; align-items: flex-start; justify-content: flex-end;
+    padding: 2px 8px 0 0; font-size: .7rem; color: var(--text-muted);
+    font-family: 'DM Mono', monospace; border-bottom: 1px solid var(--border);
 }
+.cal-day-col { border-right: 1px solid var(--border); background: white; user-select: none; }
+.cal-day-col:last-child { border-right: none; }
+.cal-grid-line { position: absolute; left: 0; right: 0; height: 40px; border-bottom: 1px solid var(--border); cursor: crosshair; transition: background var(--duration); }
+.cal-grid-line:nth-child(odd) { background: rgba(0,0,0,.008); }
+.cal-grid-line:hover { background: var(--primary-dim) !important; }
+.cal-slot {
+    position: absolute; left: 3px; right: 3px;
+    background: linear-gradient(135deg, var(--primary), #2db97a);
+    border-radius: var(--radius-sm); overflow: hidden; cursor: grab;
+    box-shadow: 0 2px 8px rgba(62,207,142,.3), 0 1px 0 rgba(255,255,255,.2) inset;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 4px 6px; transition: box-shadow var(--duration); z-index: 2; min-height: 20px;
+}
+.cal-slot:active { cursor: grabbing; opacity: .85; }
+.cal-slot:hover { box-shadow: 0 4px 14px rgba(62,207,142,.45); }
+.cal-slot-label { font-size: .68rem; font-weight: 700; color: white; line-height: 1.3; pointer-events: none; font-family: 'DM Mono', monospace; }
+.cal-slot-label small { font-weight: 400; opacity: .85; }
+.cal-slot-del {
+    background: rgba(0,0,0,.2); border: none; color: white;
+    width: 16px; height: 16px; border-radius: 50%; font-size: .75rem; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background var(--duration);
+}
+.cal-slot-del:hover { background: rgba(248,81,73,.8); }
+.cal-slot-resize { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; cursor: ns-resize; background: rgba(0,0,0,.15); border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
 
 /* ==========================================================================
-   25. HR
-   ========================================================================== */
-hr {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 20px 0;
-}
-
-/* ==========================================================================
-   26. RESPONSIVE MOBILE
+   30. RESPONSIVE MOBILE
    ========================================================================== */
 @media (max-width: 768px) {
     #mobile-menu-btn { display: flex; align-items: center; justify-content: center; }
 
     .sidebar {
-        position: fixed;
-        top: 0; left: 0; bottom: 0;
-        transform: translateX(-100%);
-        width: 270px;
+        position: fixed; top: 0; left: -260px; bottom: 0;
+        z-index: 1000; transition: left 0.3s ease; width: 240px;
     }
+    .sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.4); }
 
-    .sidebar.open {
-        transform: translateX(0);
-        box-shadow: 8px 0 40px rgba(0,0,0,0.4);
+    #sidebar-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.5); z-index: 999;
     }
-
-    .content-area {
-        padding: 20px 16px;
-        padding-top: 64px;
-    }
+    #sidebar-overlay.open { display: block; }
 
     .main-layout { flex-direction: column; }
 
+    .content-area {
+        margin-left: 0 !important;
+        padding: 60px 12px 80px;
+    }
+
     .grid-stats { grid-template-columns: 1fr 1fr; }
-
-    .grid-favorites,
-    .responsive-grid { grid-template-columns: 1fr; }
-
+    .grid-favorites, .responsive-grid { grid-template-columns: 1fr; }
     .header-actions { flex-wrap: wrap; }
-
-    .modal-content { padding: 24px 20px; }
-
+    .modal-content { padding: 24px 20px; width: 95vw; max-height: 88vh; overflow-y: auto; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    .nav-btn, .btn-success, .btn-cancel, .btn-outline { min-height: 44px; }
     h1 { font-size: 1.4rem; }
     h2 { font-size: 1.15rem; }
 }
@@ -1192,371 +883,36 @@ hr {
 }
 
 /* ==========================================================================
-   27. PLANNING CALENDRIER — Modale Google Calendar style
+   31. BARRE NAVIGATION MOBILE BAS
    ========================================================================== */
+#bottom-nav { display: none; }
 
-/* Modale planning grande */
-#modal-planning .modal-content {
-    max-width: 900px;
-    width: 95vw;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    overflow: hidden;
+@media (max-width: 768px) {
+    #bottom-nav {
+        display: flex;
+        position: fixed; bottom: 0; left: 0; right: 0;
+        height: 64px;
+        background: var(--sidebar-bg);
+        border-top: 1px solid var(--sidebar-border);
+        z-index: 1100; align-items: stretch;
+        transition: transform 0.3s ease;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
+    }
+    #bottom-nav.hidden { transform: translateY(100%); }
+
+    .bottom-nav-btn {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 4px;
+        background: none; border: none; color: var(--text-muted);
+        font-size: 0.65rem; font-family: inherit; cursor: pointer;
+        padding: 8px 4px; transition: color var(--duration), background var(--duration);
+        position: relative;
+    }
+    .bottom-nav-btn i { width: 22px; height: 22px; stroke-width: 1.8; }
+    .bottom-nav-btn:active { background: rgba(62,207,142,0.08); }
+    .bottom-nav-btn.active { color: var(--primary); }
+    .bottom-nav-btn.active::before {
+        content: ''; position: absolute; top: 0; left: 20%; right: 20%;
+        height: 2px; background: var(--primary); border-radius: 0 0 3px 3px;
+    }
 }
-
-.planning-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    flex-shrink: 0;
-}
-
-.planning-modal-header h3 { margin: 0; font-size: 1rem; }
-
-.planning-toolbar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 12px;
-    flex-shrink: 0;
-    font-size: .82rem;
-    color: var(--text-sub);
-}
-
-/* En-têtes jours */
-#planning-calendar-header {
-    display: grid;
-    grid-template-columns: 52px repeat(7, 1fr);
-    gap: 2px;
-    margin-bottom: 2px;
-    flex-shrink: 0;
-}
-
-.cal-th-empty { width: 52px; }
-
-.cal-th-day {
-    text-align: center;
-    font-size: .75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    color: var(--text-sub);
-    padding: 6px 0;
-}
-
-/* Grille principale */
-#planning-calendar-grid {
-    overflow-y: auto;
-    flex: 1;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-}
-
-.cal-layout {
-    display: grid;
-    grid-template-columns: 52px repeat(7, 1fr);
-    gap: 0;
-    min-width: 600px;
-}
-
-/* Colonne heures */
-.cal-hours-col {
-    border-right: 1px solid var(--border);
-    background: var(--card-inner);
-}
-
-.cal-hour-label {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
-    padding: 2px 8px 0 0;
-    font-size: .7rem;
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    border-bottom: 1px solid var(--border);
-    box-sizing: border-box;
-}
-
-/* Colonnes jours */
-.cal-day-col {
-    border-right: 1px solid var(--border);
-    background: white;
-    user-select: none;
-}
-
-.cal-day-col:last-child { border-right: none; }
-
-/* Lignes de grille (heures) */
-.cal-grid-line {
-    position: absolute;
-    left: 0; right: 0;
-    height: 40px;
-    border-bottom: 1px solid var(--border);
-    box-sizing: border-box;
-    cursor: crosshair;
-    transition: background var(--duration);
-}
-
-.cal-grid-line:nth-child(odd) { background: rgba(0,0,0,.008); }
-
-.cal-grid-line:hover { background: var(--primary-dim) !important; }
-
-/* Créneaux */
-.cal-slot {
-    position: absolute;
-    left: 3px; right: 3px;
-    background: linear-gradient(135deg, var(--primary), #2db97a);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    cursor: grab;
-    box-shadow: 0 2px 8px rgba(62,207,142,.3), 0 1px 0 rgba(255,255,255,.2) inset;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 4px 6px;
-    transition: box-shadow var(--duration), opacity var(--duration);
-    z-index: 2;
-    min-height: 20px;
-}
-
-.cal-slot:active { cursor: grabbing; opacity: .85; }
-
-.cal-slot:hover { box-shadow: 0 4px 14px rgba(62,207,142,.45); }
-
-.cal-slot-label {
-    font-size: .68rem;
-    font-weight: 700;
-    color: white;
-    line-height: 1.3;
-    pointer-events: none;
-    font-family: 'DM Mono', monospace;
-}
-
-.cal-slot-label small { font-weight: 400; opacity: .85; }
-
-.cal-slot-del {
-    background: rgba(0,0,0,.2);
-    border: none;
-    color: white;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    font-size: .75rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: background var(--duration);
-}
-
-.cal-slot-del:hover { background: rgba(248,81,73,.8); }
-
-/* Poignée resize en bas */
-.cal-slot-resize {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 6px;
-    cursor: ns-resize;
-    background: rgba(0,0,0,.15);
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-}
-
-/* Indicateur Bluetooth sidebar */
-#bt-status-indicator {
-    display: block;
-    font-size: .75rem;
-    margin-top: 4px;
-    color: var(--text-muted);
-    padding: 0 14px;
-}
-
-
-/* ============================================================
-   FIX - CHAMP TELEPHONE (coherence avec les autres inputs)
-      ============================================================ */
-      input[type="tel"] {
-          box-sizing: border-box;
-              width: 100%;
-                  padding: 10px 14px;
-                      background: var(--input-bg);
-                          border: 1.5px solid var(--border);
-                              border-radius: var(--radius);
-                                  color: var(--text-main);
-                                      font-size: 0.95rem;
-                                          font-family: inherit;
-                                              transition: border-color var(--duration);
-                                                  outline: none;
-                                                  }
-                                                  input[type="tel"]:focus {
-                                                      border-color: var(--primary);
-                                                          box-shadow: 0 0 0 3px var(--primary-dim);
-                                                          }
-
-                                                          /* ============================================================
-                                                             RESPONSIVE MOBILE (max-width: 768px)
-                                                                ============================================================ */
-                                                                @media (max-width: 768px) {
-
-                                                                    /* Hamburger visible */
-                                                                        #mobile-menu-btn {
-                                                                                display: flex;
-                                                                                        align-items: center;
-                                                                                                justify-content: center;
-                                                                                                    }
-
-                                                                                                        /* Sidebar cachee par defaut, glisse depuis la gauche */
-                                                                                                            .sidebar {
-                                                                                                                    position: fixed;
-                                                                                                                            left: -260px;
-                                                                                                                                    top: 0;
-                                                                                                                                            bottom: 0;
-                                                                                                                                                    z-index: 1000;
-                                                                                                                                                            transition: left 0.3s ease;
-                                                                                                                                                                    width: 240px;
-                                                                                                                                                                        }
-                                                                                                                                                                            .sidebar.open {
-                                                                                                                                                                                    left: 0;
-                                                                                                                                                                                            box-shadow: 4px 0 24px rgba(0,0,0,0.4);
-                                                                                                                                                                                                }
-
-                                                                                                                                                                                                    /* Overlay sombre derriere la sidebar */
-                                                                                                                                                                                                        #sidebar-overlay {
-                                                                                                                                                                                                                display: none;
-                                                                                                                                                                                                                        position: fixed;
-                                                                                                                                                                                                                                inset: 0;
-                                                                                                                                                                                                                                        background: rgba(0,0,0,0.5);
-                                                                                                                                                                                                                                                z-index: 999;
-                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                        #sidebar-overlay.open { display: block; }
-
-                                                                                                                                                                                                                                                            /* Layout principal */
-                                                                                                                                                                                                                                                                .main-layout {
-                                                                                                                                                                                                                                                                        flex-direction: column;
-                                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                                                .content-area {
-                                                                                                                                                                                                                                                                                        margin-left: 0 !important;
-                                                                                                                                                                                                                                                                                                padding: 60px 12px 16px;
-                                                                                                                                                                                                                                                                                                    }
-
-                                                                                                                                                                                                                                                                                                        /* Stats en colonne */
-                                                                                                                                                                                                                                                                                                            .stats-row {
-                                                                                                                                                                                                                                                                                                                    flex-direction: column;
-                                                                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                                                                                                                            .stat-card {
-                                                                                                                                                                                                                                                                                                                                    width: 100%;
-                                                                                                                                                                                                                                                                                                                                        }
-
-                                                                                                                                                                                                                                                                                                                                            /* Modales full width */
-                                                                                                                                                                                                                                                                                                                                                .modal-content {
-                                                                                                                                                                                                                                                                                                                                                        width: 95vw;
-                                                                                                                                                                                                                                                                                                                                                                margin: 16px auto;
-                                                                                                                                                                                                                                                                                                                                                                        max-height: 88vh;
-                                                                                                                                                                                                                                                                                                                                                                                overflow-y: auto;
-                                                                                                                                                                                                                                                                                                                                                                                    }
-
-                                                                                                                                                                                                                                                                                                                                                                                        /* Tableaux scrollables */
-                                                                                                                                                                                                                                                                                                                                                                                            table {
-                                                                                                                                                                                                                                                                                                                                                                                                    display: block;
-                                                                                                                                                                                                                                                                                                                                                                                                            overflow-x: auto;
-                                                                                                                                                                                                                                                                                                                                                                                                                    white-space: nowrap;
-                                                                                                                                                                                                                                                                                                                                                                                                                        }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                            /* Touch targets minimum 44px */
-                                                                                                                                                                                                                                                                                                                                                                                                                                .nav-btn,
-                                                                                                                                                                                                                                                                                                                                                                                                                                    .btn-success,
-                                                                                                                                                                                                                                                                                                                                                                                                                                        .btn-cancel,
-                                                                                                                                                                                                                                                                                                                                                                                                                                            .btn-outline {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    min-height: 44px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            /* Filtres cles en wrap */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                .filter-row {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        flex-wrap: wrap;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                gap: 6px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    /* ============================================================
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       BARRE NAVIGATION MOBILE BAS
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ============================================================ */
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          /* Cache par defaut sur desktop */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          #bottom-nav {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              display: none;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @media (max-width: 768px) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  #bottom-nav {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          display: flex;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  position: fixed;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          bottom: 0;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  left: 0;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          right: 0;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  height: 64px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          background: var(--sidebar-bg);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  border-top: 1px solid var(--sidebar-border);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          z-index: 1100;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  align-items: stretch;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          transition: transform 0.3s ease;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  box-shadow: 0 -4px 20px rgba(0,0,0,0.25);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          /* Cache quand on defile vers le bas */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              #bottom-nav.hidden {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      transform: translateY(100%);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              .bottom-nav-btn {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      flex: 1;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              display: flex;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      flex-direction: column;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              align-items: center;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      justify-content: center;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              gap: 4px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      background: none;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              border: none;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      color: var(--text-muted);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              font-size: 0.65rem;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      font-family: inherit;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              cursor: pointer;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      padding: 8px 4px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              transition: color var(--duration), background var(--duration);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      position: relative;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              .bottom-nav-btn i {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      width: 22px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              height: 22px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      stroke-width: 1.8;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              .bottom-nav-btn:active {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      background: rgba(62, 207, 142, 0.08);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              /* Bouton actif */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  .bottom-nav-btn.active {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          color: var(--primary);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  .bottom-nav-btn.active::before {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          content: '';
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  position: absolute;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          top: 0;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  left: 20%;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          right: 20%;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  height: 2px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          background: var(--primary);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  border-radius: 0 0 3px 3px;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      }
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          /* Marge en bas du contenu pour eviter la superposition */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              .content-area {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      padding-bottom: 80px !important;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
