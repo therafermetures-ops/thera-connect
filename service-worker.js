@@ -1,4 +1,4 @@
-const CACHE_NAME = 'thera-connect-v4';
+const CACHE_NAME = 'thera-connect-v4.2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -23,13 +23,26 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-first : réseau en priorité, cache en fallback
+// Network-first avec bypass du cache HTTP pour les fichiers app
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  const isAppFile = url.origin === location.origin &&
+    (url.pathname.endsWith('.js') ||
+     url.pathname.endsWith('.css') ||
+     url.pathname.endsWith('.html') ||
+     url.pathname === '/');
+
+  const fetchRequest = isAppFile
+    ? new Request(event.request, { cache: 'no-cache' })
+    : event.request;
+
   event.respondWith(
-    fetch(event.request)
+    fetch(fetchRequest)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
         return response;
       })
       .catch(() => caches.match(event.request))
