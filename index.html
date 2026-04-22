@@ -10,7 +10,7 @@
 </head>
 <body>
     <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-        <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="main-layout">
 
@@ -20,28 +20,30 @@
                 <div class="logo-text">Thera <span>Connect</span></div>
             </div>
             <div class="sidebar-nav">
-                <button class="nav-btn active" onclick="showPage('page-accueil')">
+                <button class="nav-btn active" id="snav-accueil" onclick="showPage('page-accueil')">
                     <i data-lucide="layout-dashboard"></i> <span>Tableau de Bord</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-acces')">
+                <button class="nav-btn" id="snav-acces" onclick="showPage('page-acces')">
                     <i data-lucide="door-open"></i> <span>Points d'Accès</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-profils')">
+                <button class="nav-btn" id="snav-profils" onclick="showPage('page-profils')">
                     <i data-lucide="users"></i> <span>Utilisateurs</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-cles')">
+                <button class="nav-btn" id="snav-cles" onclick="showPage('page-cles')">
                     <i data-lucide="key-round"></i> <span>Clés & Badges</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-alerts')">
-                    <i data-lucide="bell-ring"></i> <span>Alertes</span>
+                <button class="nav-btn" id="snav-alerts" onclick="showPage('page-alerts')">
+                    <i data-lucide="bell-ring"></i>
+                    <span>Alertes</span>
+                    <span class="alert-nav-badge" id="alert-nav-badge" style="display:none;">0</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-historique')">
+                <button class="nav-btn" id="snav-historique" onclick="showPage('page-historique')">
                     <i data-lucide="clipboard-list"></i> <span>Historique</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-corbeille')">
+                <button class="nav-btn" id="snav-corbeille" onclick="showPage('page-corbeille')">
                     <i data-lucide="trash-2"></i> <span>Corbeille</span>
                 </button>
-                <button class="nav-btn" onclick="showPage('page-reglages')">
+                <button class="nav-btn" id="snav-reglages" onclick="showPage('page-reglages')">
                     <i data-lucide="settings"></i> <span>Configuration</span>
                 </button>
             </div>
@@ -49,7 +51,7 @@
 
         <!-- CONTENU -->
         <main class="content-area">
-            <button id="btn-back" class="btn-outline" onclick="showPage('page-accueil')" style="display:none;">
+            <button id="btn-back" class="btn-outline" onclick="goBack()" style="display:none;">
                 <i data-lucide="arrow-left"></i> Retour
             </button>
 
@@ -60,8 +62,14 @@
                         <h1>Tableau de Bord</h1>
                         <p style="color:var(--text-sub);margin-top:5px;">Bienvenue sur votre interface Thera Connect.</p>
                     </div>
-                    <div class="status-badge">
-                        <span class="dot-online"></span> Système Connecté
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div class="status-badge" id="cloud-health-badge">
+                            <span class="dot-online"></span> Système Connecté
+                        </div>
+                        <details id="health-details" style="font-size:.8rem;color:var(--text-sub);">
+                            <summary style="cursor:pointer;list-style:none;">🔍 Détails</summary>
+                            <div id="health-details-content" style="margin-top:6px;padding:8px;background:var(--card-inner);border-radius:var(--radius-sm);min-width:200px;"></div>
+                        </details>
                     </div>
                 </div>
                 <div class="grid-stats">
@@ -79,8 +87,25 @@
                             <span class="stat-value" id="stat-alertes">—</span>
                         </div>
                     </div>
+                    <div class="card stat-card">
+                        <i data-lucide="users" class="icon-green"></i>
+                        <div>
+                            <span class="stat-label">Profils</span>
+                            <span class="stat-value" id="stat-profils">—</span>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <i data-lucide="activity" class="icon-blue"></i>
+                        <div>
+                            <span class="stat-label">Événements 24h</span>
+                            <span class="stat-value" id="stat-events">—</span>
+                        </div>
+                    </div>
                 </div>
-                <h3>⭐ Accès Favoris</h3>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                    <h3>⭐ Accès Favoris</h3>
+                    <span id="realtime-indicator" style="font-size:.75rem;color:var(--text-muted);">⬤ Temps réel</span>
+                </div>
                 <div id="favorites-container" class="grid-favorites"></div>
             </section>
 
@@ -112,11 +137,22 @@
                                 <label>N° Relais (Kincony) :</label>
                                 <input type="number" id="edit-acc-relay" min="1" max="32" disabled placeholder="1">
                             </div>
-                            <div class="form-group">
-                                <label>Nom Bluetooth (BLE) :</label>
-                                <input type="text" id="edit-acc-bt" disabled placeholder="KC868-A6">
-                            </div>
                         </div>
+
+                        <!-- Panneau connexion ESP32 -->
+                        <hr>
+                        <h3>🔌 Connexion ESP32</h3>
+                        <div class="card-inner" id="esp32-panel">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                <span id="esp32-badge" class="esp32-badge esp32-unknown">— Statut inconnu</span>
+                                <div style="display:flex;gap:8px;">
+                                    <button class="btn-small" onclick="pingCurrentAcces()">🔄 Ping</button>
+                                    <button class="btn-small" onclick="rebootCurrentESP()">⟳ Reboot</button>
+                                </div>
+                            </div>
+                            <div id="esp32-status-details" style="font-size:.82rem;color:var(--text-sub);"></div>
+                        </div>
+
                         <hr>
                         <h3>📅 Planning d'ouverture</h3>
                         <div class="card-inner">
@@ -175,6 +211,7 @@
                         <div class="form-group">
                             <label>Type de profil :</label>
                             <select id="edit-prof-type" disabled>
+                                <option value="super_admin" style="display:none;">Super Admin</option>
                                 <option value="Administrateur">Administrateur</option>
                                 <option value="Régulier">Régulier</option>
                                 <option value="Visiteur">Visiteur</option>
@@ -215,6 +252,15 @@
                         <button class="btn-outline" onclick="showAlertSubPage('logs')">Journal</button>
                     </div>
                 </div>
+
+                <!-- Liste des règles actives -->
+                <div id="alert-rules-list" class="card shadow" style="margin-bottom:16px;">
+                    <h3 style="margin-bottom:12px;">📋 Règles actives</h3>
+                    <div id="alert-rules-container">
+                        <p style="color:var(--text-muted);font-size:.88rem;">Aucune règle configurée.</p>
+                    </div>
+                </div>
+
                 <div id="alert-setup-view" class="card shadow">
                     <h3>Nouvelle Règle d'Alerte</h3>
                     <div class="form-group">
@@ -377,11 +423,20 @@
         <div class="modal-content">
             <h3 id="modal-title-target">Accès</h3>
             <p>Quelle action souhaitez-vous effectuer ?</p>
-            <div class="modal-actions">
-                <button class="btn-primary" onclick="confirmCommand('OUVRIR')">OUVRIR</button>
+            <div id="modal-btns" class="modal-actions">
+                <button class="btn-primary" onclick="startOpenSlider()">OUVRIR</button>
                 <button class="btn-danger" onclick="confirmCommand('FERMER')">FERMER</button>
             </div>
-            <button class="btn-outline" style="width:100%;margin-top:10px;" onclick="closeModal('modal-control')">Annuler</button>
+            <!-- Slider confirmation OUVRIR -->
+            <div id="modal-slider-wrap" style="display:none;margin-top:16px;">
+                <p style="font-size:.8rem;color:var(--text-sub);margin-bottom:8px;text-align:center;">Glissez pour confirmer l'ouverture</p>
+                <div class="slider-track" id="slider-track">
+                    <div class="slider-fill" id="slider-fill"></div>
+                    <div class="slider-label" id="slider-label">Glissez pour ouvrir →</div>
+                    <div class="slider-thumb" id="slider-thumb">→</div>
+                </div>
+            </div>
+            <button class="btn-outline" style="width:100%;margin-top:12px;" onclick="closeModal('modal-control')">Annuler</button>
         </div>
     </div>
 
@@ -423,7 +478,7 @@
                 <select id="new-prof-type" onchange="toggleDateInput()">
                     <option value="Administrateur">Administrateur</option>
                     <option value="Régulier">Régulier</option>
-                                    <option value="Visiteur" selected>Visiteur</option>
+                    <option value="Visiteur" selected>Visiteur</option>
                 </select>
             </div>
             <div id="expiry-date-container" class="form-group" style="display:none;padding:10px;border:1px dashed var(--primary);border-radius:var(--radius);">
@@ -455,23 +510,35 @@
         </div>
     </div>
 
+    <!-- Toast notification -->
+    <div id="toast" class="toast" style="display:none;"></div>
+
     <script src="script.js"></script>
     <script src="auth.js"></script>
 
-        <!-- BARRE NAVIGATION MOBILE BAS -->
-            <nav id="bottom-nav">
-                    <button class="bottom-nav-btn active" id="bnav-accueil" onclick="showPage('page-accueil'); setBottomNavActive('bnav-accueil')">
-                                <i data-lucide="layout-dashboard"></i>
-                                            <span>Accueil</span>
-                                                    </button>
-                                                            <button class="bottom-nav-btn" id="bnav-acces" onclick="showPage('page-acces'); setBottomNavActive('bnav-acces')">
-                                                                        <i data-lucide="door-open"></i>
-                                                                                    <span>Accès</span>
-                                                                                            </button>
-                                                                                                    <button class="bottom-nav-btn" id="bnav-profils" onclick="showPage('page-profils'); setBottomNavActive('bnav-profils')">
-                                                                                                                <i data-lucide="users"></i>
-                                                                                                                            <span>Utilisateurs</span>
-                                                                                                                                    </button>
-                                                                                                                                        </nav>
+    <!-- BARRE NAVIGATION MOBILE BAS -->
+    <nav id="bottom-nav">
+        <button class="bottom-nav-btn active" id="bnav-accueil" onclick="showPage('page-accueil')">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Accueil</span>
+        </button>
+        <button class="bottom-nav-btn" id="bnav-acces" onclick="showPage('page-acces')">
+            <i data-lucide="door-open"></i>
+            <span>Accès</span>
+        </button>
+        <button class="bottom-nav-btn" id="bnav-profils" onclick="showPage('page-profils')">
+            <i data-lucide="users"></i>
+            <span>Profils</span>
+        </button>
+        <button class="bottom-nav-btn" id="bnav-alerts" onclick="showPage('page-alerts')">
+            <i data-lucide="bell-ring"></i>
+            <span>Alertes</span>
+            <span class="alert-nav-badge" id="alert-nav-badge-mobile" style="display:none;">0</span>
+        </button>
+        <button class="bottom-nav-btn" id="bnav-reglages" onclick="showPage('page-reglages')">
+            <i data-lucide="settings"></i>
+            <span>Réglages</span>
+        </button>
+    </nav>
 </body>
 </html>
