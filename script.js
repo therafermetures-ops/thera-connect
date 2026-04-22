@@ -362,42 +362,131 @@ function renderFavorites() {
     const container = document.getElementById('favorites-container');
     if (!container) return;
     container.innerHTML = '';
+
     const favs = state.acces.filter(a => a.is_favorite);
     if (!favs.length) {
-        container.innerHTML = '<div class="empty-state"><p>Aucun favori — marquez un accès ★ pour le voir ici.</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>Aucun accès en favori. Ajoutez des étoiles ★ dans la page Accès.</p></div>';
         return;
     }
+
+    const title = document.createElement('h3');
+    title.textContent = '★ Accès favoris';
+    title.style.marginBottom = '12px';
+    container.appendChild(title);
+
     favs.forEach(acc => {
-        const st = acc.status === 'defaut' ? 'defaut'
-                 : acc.status === 'ouvert' ? 'ouvert'
-                 : acc.status === 'ferme'  ? 'ferme'
-                 : (_isAccessAllowedNow(acc) ? 'ouvert' : 'ferme');
-        const cfg = {
-            defaut: { label: '⚠️ DÉFAUT',  color: 'var(--orange)' },
-            ouvert: { label: '🟢 OUVERT',  color: 'var(--green)'  },
-            ferme:  { label: '🔴 FERMÉ',   color: 'var(--red)'    }
-        }[st];
-        const onlineTag = acc._online === false
-            ? '<span style="font-size:.72rem;color:var(--red);margin-left:6px;">● hors ligne</span>'
-            : acc._online === true
-            ? '<span style="font-size:.72rem;color:var(--green);margin-left:6px;">● en ligne</span>' : '';
+        // Determine real status from module_status
+        const modStatus = state.moduleStatus ? state.moduleStatus.find(m => m.access_id === acc.id) : null;
+        let statusLabel = 'DÉFAUT';
+        let statusClass = 'status-defaut';
+        let statusColor = '#888';
+
+        if (modStatus) {
+            if (modStatus.is_open === true) {
+                statusLabel = 'OUVERT';
+                statusClass = 'status-ouvert';
+                statusColor = 'var(--orange, #f0883e)';
+            } else if (modStatus.is_open === false && !modStatus.has_fault) {
+                statusLabel = 'FERMÉ';
+                statusClass = 'status-ferme';
+                statusColor = 'var(--green, #3fb950)';
+            } else if (modStatus.has_fault) {
+                statusLabel = 'DÉFAUT';
+                statusClass = 'status-defaut';
+                statusColor = '#e74c3c';
+            }
+        } else {
+            // Try to guess from last known state
+            statusLabel = '—';
+            statusColor = '#888';
+        }
+
         const card = document.createElement('div');
-        card.className = 'card access-tile animate-in';
-        card.style.borderLeftColor = cfg.color;
+        card.className = 'card item-card animate-in';
+        card.style.cursor = 'pointer';
+        card.onclick = () => openFavoriteModal(acc.id);
         card.innerHTML = `
-            <div class="tile-header"><div class="tile-info">
-                <h4>${acc.name} ${onlineTag}</h4>
-                <span style="font-size:.78rem;font-weight:700;color:${cfg.color}">${cfg.label}</span>
-            </div></div>
-            <div class="tile-body"><div class="ip-badge"><i data-lucide="network"></i> ${acc.ip}</div></div>
-            <div class="tile-actions">
-                <button class="btn-action-primary" onclick="openControlModal('${acc.id}','${acc.name}')">
-                    <i data-lucide="unplug"></i> Contrôler
-                </button>
+            <div class="main-info">
+                <div class="avatar" style="background:${statusColor}20;color:${statusColor}">
+                    <i data-lucide="door-open"></i>
+                </div>
+                <div>
+                    <div style="font-weight:700">${acc.name}</div>
+                    <div class="ip-badge"><i data-lucide="network"></i>${acc.ip || '—'}</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+                <span class="status-pill ${statusClass}" style="background:${statusColor}20;color:${statusColor};padding:3px 10px;border-radius:12px;font-size:.8rem;font-weight:600">
+                    ${statusLabel}
+                </span>
+                <div class="card-arrow"><i data-lucide="chevron-right"></i></div>
             </div>`;
         container.appendChild(card);
     });
+
     if (window.lucide) lucide.createIcons();
+}
+
+function openFavoriteModal(accId) {
+    const acc = state.acces.find(a => a.id === accId);
+    if (!acc) return;
+
+    const modStatus = state.moduleStatus ? state.moduleStatus.find(m => m.access_id === accId) : null;
+    const isOpen = modStatus ? modStatus.is_open : false;
+
+    // Create modal overlay
+    let overlay = document.getElementById('fav-modal-overlay');
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.id = 'fav-modal-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+
+    overlay.innerHTML = `
+        <div class="card shadow" style="min-width:280px;max-width:360px;width:90%;padding:24px;border-radius:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+                <h3 style="margin:0">${acc.name}</h3>
+                <button onclick="document.getElementById('fav-modal-overlay').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted)">×</button>
+            </div>
+            <p style="color:var(--text-sub);font-size:.9rem;margin-bottom:20px">
+                Statut actuel : <strong>${isOpen ? 'OUVERT' : modStatus ? 'FERMÉ' : '—'}</strong>
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <button class="btn-primary" onclick="confirmFavoriteCommand('${accId}', 'open')" style="padding:14px;font-size:1rem">
+                    🔓 OUVRIR
+                </button>
+                <button class="btn-danger" onclick="confirmFavoriteCommand('${accId}', 'close')" style="padding:14px;font-size:1rem">
+                    🔒 FERMER
+                </button>
+            </div>
+        </div>`;
+
+    document.body.appendChild(overlay);
+}
+
+function confirmFavoriteCommand(accId, action) {
+    const acc = state.acces.find(a => a.id === accId);
+    if (!acc) return;
+    const label = action === 'open' ? 'ouvrir' : 'fermer';
+    if (!confirm(`Confirmer : ${label} "${acc.name}" ?`)) return;
+
+    document.getElementById('fav-modal-overlay')?.remove();
+
+    // Send command
+    const relay = acc.relay || 1;
+    const cmd = action === 'open' ? 'open' : 'close';
+    _sendHttpCommand(acc.ip, relay, cmd);
+    showToast(`✓ Commande ${label} envoyée`);
+
+    // Update local status optimistically
+    if (!state.moduleStatus) state.moduleStatus = [];
+    let mod = state.moduleStatus.find(m => m.access_id === accId);
+    if (!mod) { mod = { access_id: accId }; state.moduleStatus.push(mod); }
+    mod.is_open = action === 'open';
+    mod.has_fault = false;
+
+    // Re-render favorites after a short delay
+    setTimeout(renderFavorites, 800);
 }
 
 /* ==================================================================
