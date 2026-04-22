@@ -1,4 +1,4 @@
-const cacheName = 'thera-v2';
+const cacheName = 'thera-v4';
 
 self.addEventListener('install', (event) => {
     // Force le service worker à s'activer immédiatement sans attendre

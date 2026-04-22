@@ -1,4 +1,3 @@
-
 const CACHE_NAME = 'thera-connect-v4';
 const ASSETS = [
   '/',
