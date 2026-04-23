@@ -91,7 +91,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     "https://dekxcxlremxaynpezgmr.supabase.co";
   const key =
     localStorage.getItem("supabase_key") ||
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+    "sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk";
   initSupabase(url, key);
 
   // On écoute l'événement d'authentification pour charger les données
