@@ -91,7 +91,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     "https://dekxcxlremxaynpezgmr.supabase.co";
   const key =
     localStorage.getItem("supabase_key") ||
-    "sb_publishable_JwUtLr2UiSvfsBMceTfWSw_ktthLogk";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRla3hjeGxyZW14YXlucGV6Z21yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNzMwMTQsImV4cCI6MjA5MDk0OTAxNH0.nQPQSQc4M7TVVFdlCWiqbpJ60V26a7EVS1h-RWHuEpI";
   initSupabase(url, key);
 
   // On écoute l'événement d'authentification pour charger les données
