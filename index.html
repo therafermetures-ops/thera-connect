@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="fr">
   <head>
@@ -884,16 +885,7 @@
 
     <script src="script.js"></script>
     <script src="auth.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/service-worker.js")
-            .then((reg) => console.log("Service Worker enregistré !", reg))
-            .catch((err) => console.log("Erreur d'enregistrement :", err));
-        });
-      }
-    </script>
+
     <!-- BARRE NAVIGATION MOBILE BAS -->
     <nav id="bottom-nav">
       <button
@@ -943,5 +935,19 @@
         <span>Réglages</span>
       </button>
     </nav>
+   <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          // On utilise le nom exact du fichier corrigé
+          navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => {
+              console.log('✅ Service Worker enregistré (Portée: ' + reg.scope + ')');
+            })
+            .catch(err => {
+              console.error('❌ Échec enregistrement SW:', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>
