@@ -1,3 +1,4 @@
+
 const CACHE_NAME = 'thera-connect-v4.1'; // Changez le nom pour forcer la mise à jour
 const ASSETS = [
   '/',
