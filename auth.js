@@ -26,12 +26,19 @@ window.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Écouter les changements d'état de session
-  // INITIAL_SESSION remplace le getSession() standalone → évite le double appel
-  supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  // ⚠️ IMPORTANT : le callback NE DOIT PAS être `async` ni `await` une opération
+  // Supabase. Supabase-js v2 tient un Web Lock (`lock:sb-<ref>-auth-token`) pendant
+  // toute la durée d'exécution du callback. Toute requête `supabaseClient.from(...)`
+  // ou `supabaseClient.auth.*` à l'intérieur de ce callback tentera d'acquérir le
+  // même verrou → DEADLOCK → écran vide au F5.
+  // Solution : callback synchrone qui delègue le travail async via setTimeout(...,0)
+  // pour que le verrou soit libéré avant d'exécuter handleSignIn.
+  supabaseClient.auth.onAuthStateChange((event, session) => {
     console.log("🔐 Auth event:", event);
 
     if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
-      await handleSignIn(session.user);
+      // Defer handleSignIn() hors du callback pour libérer le Web Lock
+      setTimeout(() => handleSignIn(session.user), 0);
     } else if (event === "INITIAL_SESSION" && !session) {
       showAuthScreen("login");
     } else if (event === "SIGNED_OUT") {
