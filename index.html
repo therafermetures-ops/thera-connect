@@ -942,29 +942,4 @@
             .then((reg) => {
               console.log("✅ SW enregistré v4.5 (portée: " + reg.scope + ")");
               // Vérifier les mises à jour silencieusement
-              reg.update();
-              // Si un nouveau SW est déjà en attente, l'activer
-              if (reg.waiting) {
-                reg.waiting.postMessage({ type: "SKIP_WAITING" });
-              }
-              // Nouveau SW détecté → activation silencieuse (pas de reload forcé)
-              reg.addEventListener("updatefound", () => {
-                const newSW = reg.installing;
-                if (!newSW) return;
-                newSW.addEventListener("statechange", () => {
-                  if (newSW.state === "installed" && navigator.serviceWorker.controller) {
-                    // Nouveau SW prêt → activer sans recharger la page
-                    newSW.postMessage({ type: "SKIP_WAITING" });
-                    console.log("🔄 Nouveau SW installé et activé silencieusement.");
-                  }
-                });
-              });
-            })
-            .catch((err) => {
-              console.error("❌ Échec enregistrement SW:", err);
-            });
-        });
-      }
-    </script>
-  </body>
-</html>
+              reg.u
