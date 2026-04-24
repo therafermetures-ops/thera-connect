@@ -102,10 +102,18 @@ window.addEventListener("DOMContentLoaded", async () => {
    CHARGEMENT DONNÉES (VERSION CORRIGÉE & OPTIMISÉE)
 ================================================================== */
 async function loadAllData() {
+  // Guard anti-double appel concurrent (Web Lock Supabase)
+  if (window._loadingData) {
+    console.warn("⏳ loadAllData déjà en cours, appel ignoré.");
+    return;
+  }
+  window._loadingData = true;
+
   console.log("🔍 Début du chargement des données...");
 
   if (!supabaseClient) {
     console.error("❌ Supabase n'est pas initialisé");
+    window._loadingData = false;
     return;
   }
 
@@ -208,6 +216,8 @@ async function loadAllData() {
     if (typeof showToast === "function") {
       showToast("Erreur chargement : " + err.message, "error");
     }
+  } finally {
+    window._loadingData = false;
   }
 }
 
