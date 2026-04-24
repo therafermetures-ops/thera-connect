@@ -2433,6 +2433,6 @@ function checkCloudStatus() {
 setInterval(checkCloudStatus, 5 * 60 * 1000);
 
 window.onload = () => {
-  console.log("🚀 Thera Connect v4.0");
+  console.log("🚀 Thera Connect v4.5");
   if (window.lucide) lucide.createIcons();
 };
