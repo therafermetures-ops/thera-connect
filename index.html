@@ -882,8 +882,8 @@
     <!-- Toast notification -->
     <div id="toast" class="toast" style="display: none"></div>
 
-    <script src="script.js"></script>
-    <script src="auth.js"></script>
+    <script src="script.js?v=4.5"></script>
+    <script src="auth.js?v=4.5"></script>
 
     <!-- BARRE NAVIGATION MOBILE BAS -->
     <nav id="bottom-nav">
@@ -940,20 +940,22 @@
           navigator.serviceWorker
             .register("./service-worker.js")
             .then((reg) => {
-              console.log("✅ SW enregistré (portée: " + reg.scope + ")");
-              // Forcer la vérification d'une mise à jour à chaque chargement
+              console.log("✅ SW enregistré v4.5 (portée: " + reg.scope + ")");
+              // Vérifier les mises à jour silencieusement
               reg.update();
-              // Si un nouveau SW est en attente, l'activer immédiatement
+              // Si un nouveau SW est déjà en attente, l'activer
               if (reg.waiting) {
                 reg.waiting.postMessage({ type: "SKIP_WAITING" });
               }
+              // Nouveau SW détecté → activation silencieuse (pas de reload forcé)
               reg.addEventListener("updatefound", () => {
                 const newSW = reg.installing;
                 if (!newSW) return;
                 newSW.addEventListener("statechange", () => {
-                  if (newSW.state === "activated") {
-                    console.log("🔄 Nouveau SW activé — rechargement...");
-                    window.location.reload();
+                  if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+                    // Nouveau SW prêt → activer sans recharger la page
+                    newSW.postMessage({ type: "SKIP_WAITING" });
+                    console.log("🔄 Nouveau SW installé et activé silencieusement.");
                   }
                 });
               });

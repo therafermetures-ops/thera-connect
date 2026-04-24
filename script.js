@@ -1,5 +1,5 @@
 /* ==================================================================
-   THERA CONNECT — script.js v4.0
+   THERA CONNECT — script.js v4.5
 ================================================================== */
 
 /* ==================================================================
@@ -202,12 +202,9 @@ async function loadAllData() {
       `✅ Données chargées : ${state.acces.length} accès, ${state.profils.length} profils`,
     );
 
-    // Rendu final
-    if (typeof renderAll === "function") {
-      renderAll();
-    } else {
-      console.warn("⚠️ La fonction renderAll() n'est pas définie.");
-    }
+    // Rendu final : re-rendre la page actuellement active
+    const _activePage = document.querySelector(".page.active");
+    if (_activePage) showPage(_activePage.id, false);
 
     // Lancement du temps réel
     if (typeof startRealtimeFeatures === "function") startRealtimeFeatures();
