@@ -1,54 +1,85 @@
+/* ==================================================================
+   THERA CONNECT — service-worker.js v4.5
+================================================================== */
 
-const CACHE_NAME = 'thera-connect-v4.1'; // Changez le nom pour forcer la mise à jour
+const CACHE_NAME = "thera-connect-v4.5";
+
+// Liste des fichiers statiques à mettre en cache pour l'accès hors-ligne
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/manifest.json',
-  '/icon.png'
+  "/",
+  "/index.html",
+  "/style.css",
+  "/script.js",
+  "/manifest.json",
+  "/icon.png",
 ];
 
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
+// Installation : Mise en cache des actifs statiques
+self.addEventListener("install", (event) => {
+  self.skipWaiting(); // Force le nouveau SW à prendre le contrôle immédiatement
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log("SW: Mise en cache des actifs statiques");
+      return cache.addAll(ASSETS);
+    }),
   );
 });
 
-self.addEventListener('activate', (event) => {
+// Activation : Nettoyage des anciens caches + prise de contrôle immédiate
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => {
+              console.log("[SW] Purge ancien cache :", key);
+              return caches.delete(key);
+            }),
+        ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
-self.addEventListener('fetch', (event) => {
+// Interception des requêtes
+self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // 1. IGNORER LES REQUÊTES API ET EXTERNES
-  // Ne pas intercepter : les requêtes non-GET, les requêtes vers Supabase, et les requêtes HTTP (ESP32)
+  // --- FILTRE DE SÉCURITÉ ---
+  // On NE gère PAS les requêtes si :
+  // 1. Ce n'est pas du GET (ex: POST pour l'auth ou l'écriture de données)
+  // 2. C'est vers le domaine de Supabase (API de données)
+  // 3. C'est une requête vers vos modules ESP32 (HTTP local)
   if (
-    event.request.method !== 'GET' || 
-    url.hostname.includes('supabase.co') || 
-    url.protocol === 'http:' ||
-    url.hostname !== self.location.hostname // Ignore tout ce qui ne vient pas de votre domaine
+    event.request.method !== "GET" ||
+    url.hostname.includes("supabase.co") ||
+    url.protocol === "http:" ||
+    url.hostname !== self.location.hostname
   ) {
-    return; // Laisse le navigateur gérer la requête normalement (sans passer par le cache)
+    // On laisse le navigateur gérer la requête normalement sans passer par le cache
+    return;
   }
 
-  // 2. STRATÉGIE NETWORK-FIRST POUR LES FICHIERS DE L'APP
+  // --- STRATÉGIE NETWORK-FIRST ---
+  // On tente d'abord le réseau pour avoir la version la plus récente
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Ne met en cache que les réponses locales et valides
-        if (response && response.status === 200 && response.type === 'basic') {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        // Si la réponse est valide, on met à jour le cache
+        if (response && response.status === 200 && response.type === "basic") {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        // Si le réseau échoue (mode hors-ligne), on cherche dans le cache
+        return caches.match(event.request);
+      }),
   );
 });
