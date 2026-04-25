@@ -136,52 +136,43 @@
               </details>
             </div>
           </div>
-          <div class="grid-stats">
-            <div class="card stat-card">
-              <i data-lucide="door-open" class="icon-blue"></i>
-              <div>
-                <span class="stat-label">Accès Actifs</span>
-                <span class="stat-value" id="stat-acces">—</span>
+          <!-- ADMIN DASHBOARD -->
+          <div id="admin-dashboard">
+            <div class="grid-stats">
+              <div class="card stat-card">
+                <i data-lucide="door-open" class="icon-blue"></i>
+                <div>
+                  <span class="stat-label">Accès Actifs</span>
+                  <span class="stat-value" id="stat-acces">—</span>
+                </div>
+              </div>
+              <div class="card stat-card">
+                <i data-lucide="shield-alert" class="icon-orange"></i>
+                <div>
+                  <span class="stat-label">Alertes 24h</span>
+                  <span class="stat-value" id="stat-alertes">—</span>
+                </div>
               </div>
             </div>
-            <div class="card stat-card">
-              <i data-lucide="shield-alert" class="icon-orange"></i>
-              <div>
-                <span class="stat-label">Alertes 24h</span>
-                <span class="stat-value" id="stat-alertes">—</span>
-              </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+              <h3>⭐ Accès Favoris</h3>
+              <span id="realtime-indicator" style="font-size:0.75rem;color:var(--text-muted)">⬤ Temps réel</span>
             </div>
-            <div class="card stat-card">
-              <i data-lucide="users" class="icon-green"></i>
-              <div>
-                <span class="stat-label">Profils</span>
-                <span class="stat-value" id="stat-profils">—</span>
-              </div>
-            </div>
-            <div class="card stat-card">
-              <i data-lucide="activity" class="icon-blue"></i>
-              <div>
-                <span class="stat-label">Événements 24h</span>
-                <span class="stat-value" id="stat-events">—</span>
-              </div>
-            </div>
+            <div id="favorites-container" class="grid-favorites"></div>
           </div>
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 12px;
-            "
-          >
-            <h3>⭐ Accès Favoris</h3>
-            <span
-              id="realtime-indicator"
-              style="font-size: 0.75rem; color: var(--text-muted)"
-              >⬤ Temps réel</span
-            >
+
+          <!-- USER DASHBOARD (Régulier / Visiteur) -->
+          <div id="user-dashboard" style="display:none">
+            <div id="user-expiry-banner" style="display:none;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--orange);margin-bottom:16px;font-size:.85rem;gap:8px;align-items:center;">
+              <span>⏱️</span>
+              <span id="user-expiry-text"></span>
+            </div>
+            <div style="margin-bottom:20px;">
+              <h2 id="user-welcome-title" style="font-size:1.3rem;font-weight:700;margin-bottom:4px;">Bonjour</h2>
+              <p id="user-welcome-sub" style="font-size:.85rem;color:var(--text-muted);">Voici vos accès autorisés.</p>
+            </div>
+            <div id="user-access-container"></div>
           </div>
-          <div id="favorites-container" class="grid-favorites"></div>
         </section>
 
         <!-- POINTS D'ACCÈS -->
@@ -259,43 +250,8 @@
 
               <hr />
               <h3>📅 Planning d'ouverture</h3>
-              <div class="card-inner">
-                <div class="days-selector">
-                  <label
-                    ><input type="checkbox" class="plan-day" value="1" />
-                    L</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="2" />
-                    M</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="3" />
-                    M</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="4" />
-                    J</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="5" />
-                    V</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="6" />
-                    S</label
-                  >
-                  <label
-                    ><input type="checkbox" class="plan-day" value="0" />
-                    D</label
-                  >
-                </div>
-                <div class="time-range">
-                  <label>De :</label>
-                  <input type="time" id="plan-start" value="08:00" disabled />
-                  <label>À :</label>
-                  <input type="time" id="plan-end" value="18:00" disabled />
-                </div>
+              <div id="planning-container" class="card-inner">
+                <!-- Rendu dynamiquement par renderPlanningSlots() -->
               </div>
               <div class="edit-footer-actions">
                 <button
@@ -672,6 +628,20 @@
           </div>
         </section>
 
+        <!-- MES ACCÈS (Régulier / Visiteur) -->
+        <section id="page-mes-acces" class="page">
+          <div class="page-header">
+            <div>
+              <h2>🔑 Mes Accès</h2>
+              <p style="color:var(--text-sub);margin-top:4px;font-size:.85rem;">Vos accès autorisés</p>
+            </div>
+          </div>
+          <div id="mes-acces-expiry-banner" style="display:none;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--orange);margin-bottom:16px;font-size:.85rem;">
+            <span id="mes-acces-expiry-text"></span>
+          </div>
+          <div id="mes-acces-container"></div>
+        </section>
+
         <!-- SYSTÈME -->
         <section id="page-systeme" class="page">
           <div class="header-actions"><h2>🖥️ Maintenance Système</h2></div>
@@ -933,6 +903,15 @@
         <i data-lucide="settings"></i>
         <span>Réglages</span>
       </button>
+      <button
+        class="bottom-nav-btn"
+        id="bnav-mes-acces"
+        onclick="showPage('page-mes-acces')"
+        style="display:none"
+      >
+        <i data-lucide="key-round"></i>
+        <span>Mes Accès</span>
+      </button>
     </nav>
     <script>
       if ("serviceWorker" in navigator) {
@@ -968,3 +947,4 @@
     </script>
   </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 

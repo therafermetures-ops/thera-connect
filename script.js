@@ -296,6 +296,7 @@ const _bnavMap = {
   "page-accueil": "bnav-accueil",
   "page-acces": "bnav-acces",
   "page-profils": "bnav-profils",
+  "page-mes-acces": "bnav-mes-acces",
 };
 
 function showPage(pageId, _addHistory = true) {
@@ -499,7 +500,7 @@ function _renderUserAccessCards(container, profil, expiresAt) {
   const isExpired = expObj && expObj <= Date.now();
 
   myAccess.forEach((acc) => {
-    const allowed = _isAccessAllowedNow(acc) && !isExpired;
+    const allowed = _isAccessAllowedNow(acc) && _isProfilScheduleAllowedNow(profil, acc.id) && !isExpired;
     const card = document.createElement("div");
     card.className = "card animate-in";
     card.style.cssText =
@@ -592,6 +593,22 @@ function _isAccessAllowedNow(acc) {
   });
 }
 
+function _isProfilScheduleAllowedNow(profil, accId) {
+  if (!profil) return true;
+  var schedules = profil.access_schedules || {};
+  var slots = schedules[accId];
+  if (!slots || slots.length === 0) return true; // no restriction = always allowed
+  var now = new Date();
+  var time = now.getHours() * 60 + now.getMinutes();
+  return slots.some(function(slot) {
+    var parts_s = (slot.start || "00:00").split(":").map(Number);
+    var parts_e = (slot.end || "23:59").split(":").map(Number);
+    var sm = parts_s[0] * 60 + parts_s[1];
+    var em = parts_e[0] * 60 + parts_e[1];
+    return time >= sm && time <= em;
+  });
+}
+
 function renderFavorites() {
   const container = document.getElementById("favorites-container");
   if (!container) return;
@@ -603,11 +620,6 @@ function renderFavorites() {
       '<div class="empty-state"><p>Aucun accès en favori. Ajoutez des étoiles ★ dans la page Accès.</p></div>';
     return;
   }
-
-  const title = document.createElement("h3");
-  title.textContent = "★ Accès favoris";
-  title.style.marginBottom = "12px";
-  container.appendChild(title);
 
   favs.forEach((acc) => {
     // Determine real status from module_status
@@ -1193,9 +1205,109 @@ function openAccesEdit(id) {
   if (relayEl) relayEl.value = acc.relay_id || "1";
   toggleEditMode(false);
   renderESP32StatusPanel(acc);
+  renderPlanningSlots(acc, false);
   // Masquer le bouton retour global (la fiche a son propre bouton ← Retour)
   const btnBack = document.getElementById("btn-back");
   if (btnBack) btnBack.style.display = "none";
+}
+
+
+/* ==================================================================
+   PLANNING MULTI-CRÉNEAUX
+================================================================== */
+const _DAYS_FR = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+
+function renderPlanningSlots(acc, editable) {
+  const container = document.getElementById("planning-container");
+  if (!container) return;
+  const slots = acc && acc.planning && acc.planning.slots ? acc.planning.slots : {};
+
+  if (editable) {
+    window._editingSlots = {};
+    for (let d = 0; d < 7; d++) {
+      window._editingSlots[d] = (slots[d] || []).map(function(s) { return Object.assign({}, s); });
+    }
+  }
+
+  const src = editable ? window._editingSlots : slots;
+  const inputStyle = "padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card-inner);color:var(--text);font-size:.85rem;width:110px;";
+  let html = "";
+
+  _DAYS_FR.forEach(function(day, d) {
+    const daySlots = src[d] || [];
+    const active = daySlots.length > 0;
+
+    let cbHtml = editable
+      ? '<input type="checkbox" id="pday-' + d + '" ' + (active ? "checked" : "") +
+        ' onchange="togglePlanningDay(' + d + ')" style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;">'
+      : '<span style="width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;' +
+        'background:' + (active ? 'var(--primary)' : 'var(--border)') + ';border-radius:4px;font-size:.65rem;color:white;">' +
+        (active ? "✓" : "—") + "</span>";
+
+    let addBtn = (editable && active)
+      ? '<button class="btn-small" style="margin-left:auto;font-size:.75rem;padding:3px 10px;" onclick="addPlanningSlot(' + d + ')">+ Créneau</button>'
+      : "";
+
+    let slotsHtml = "";
+    if (active) {
+      slotsHtml = '<div style="margin-left:28px;">';
+      daySlots.forEach(function(slot, i) {
+        const onChangeStart = editable ? ' onchange="updatePlanningSlot(' + d + ',' + i + ',\\"start\\",this.value)"' : " disabled";
+        const onChangeEnd   = editable ? ' onchange="updatePlanningSlot(' + d + ',' + i + ',\\"end\\",this.value)"'   : " disabled";
+        const delBtn = editable
+          ? '<button onclick="removePlanningSlot(' + d + ',' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1.2rem;padding:2px 6px;">✕</button>'
+          : "";
+        slotsHtml +=
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+          '<input type="time" value="' + slot.start + '"' + onChangeStart + ' style="' + inputStyle + '">' +
+          '<span style="color:var(--text-muted);">→</span>' +
+          '<input type="time" value="' + slot.end + '"' + onChangeEnd + ' style="' + inputStyle + '">' +
+          delBtn + "</div>";
+      });
+      slotsHtml += "</div>";
+    } else if (editable) {
+      slotsHtml = '<div style="margin-left:28px;font-size:.8rem;color:var(--text-muted);">Désactivé — cochez pour activer</div>';
+    } else {
+      slotsHtml = '<div style="margin-left:28px;font-size:.8rem;color:var(--text-muted);">Accès libre</div>';
+    }
+
+    html +=
+      '<div style="border-bottom:1px solid var(--border);padding:8px 0;">' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:' + (active ? "8px" : "0") + ';">' +
+      cbHtml + '<span style="font-weight:700;min-width:30px;">' + day + "</span>" + addBtn +
+      "</div>" + slotsHtml + "</div>";
+  });
+
+  container.innerHTML = html;
+}
+
+function togglePlanningDay(d) {
+  if (!window._editingSlots) return;
+  const cb = document.getElementById("pday-" + d);
+  window._editingSlots[d] = cb && cb.checked ? [{ start: "08:00", end: "18:00" }] : [];
+  const acc = state.acces.find(function(a) { return a.id === currentEditingId; }) || {};
+  renderPlanningSlots(acc, true);
+}
+
+function addPlanningSlot(d) {
+  if (!window._editingSlots) window._editingSlots = {};
+  if (!window._editingSlots[d]) window._editingSlots[d] = [];
+  window._editingSlots[d].push({ start: "08:00", end: "18:00" });
+  const acc = state.acces.find(function(a) { return a.id === currentEditingId; }) || {};
+  renderPlanningSlots(acc, true);
+}
+
+function removePlanningSlot(d, i) {
+  if (!window._editingSlots || !window._editingSlots[d]) return;
+  window._editingSlots[d].splice(i, 1);
+  const acc = state.acces.find(function(a) { return a.id === currentEditingId; }) || {};
+  renderPlanningSlots(acc, true);
+}
+
+function updatePlanningSlot(d, i, field, value) {
+  if (window._editingSlots && window._editingSlots[d] && window._editingSlots[d][i]) {
+    window._editingSlots[d][i][field] = value;
+  }
 }
 
 function closeAccesEdit() {
@@ -1225,6 +1337,7 @@ async function saveAccesModifications() {
     name: document.getElementById("edit-acc-name").value.trim(),
     ip: document.getElementById("edit-acc-ip").value.trim(),
     relay_id: parseInt(document.getElementById("edit-acc-relay")?.value || 1),
+    planning: { slots: window._editingSlots || {} },
   };
   try {
     if (supabaseClient) {
@@ -1236,8 +1349,8 @@ async function saveAccesModifications() {
     }
     const idx = state.acces.findIndex((a) => a.id === currentEditingId);
     if (idx !== -1) Object.assign(state.acces[idx], updates);
-    toggleEditMode(false);
     showToast("✅ Accès mis à jour");
+    closeAccesEdit();
   } catch (err) {
     showToast("Erreur : " + err.message, "error");
   }
@@ -1542,7 +1655,8 @@ function openProfilEdit(id) {
   document.getElementById("edit-prof-code").value = prof.code || "";
   document.getElementById("edit-prof-badge").value = prof.badge || "";
   document.getElementById("edit-prof-remote").value = prof.remote || "";
-  _renderProfilAccessRights(prof);
+  window._editingProfilSchedules = JSON.parse(JSON.stringify(prof.access_schedules || {}));
+  _renderProfilAccessRights(prof, false);
   toggleProfilEditMode(false);
   // Masquer le bouton retour global (la fiche a son propre bouton ← Retour)
   const btnBack = document.getElementById("btn-back");
@@ -1558,28 +1672,108 @@ function openProfilEdit(id) {
   }
 }
 
-function _renderProfilAccessRights(prof) {
-  const container = document.getElementById("profil-permissions-container");
+function _renderProfilAccessRights(prof, editable) {
+  var container = document.getElementById("profil-permissions-container");
   if (!container) return;
-  const authorized = prof.authorized_access || [];
+  var authorized = prof.authorized_access || [];
+  var schedules = window._editingProfilSchedules || {};
   if (!state.acces.length) {
-    container.innerHTML =
-      '<p style="color:var(--text-muted);font-size:.85rem">Aucun accès configuré.</p>';
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem">Aucun accès configuré.</p>';
     return;
   }
-  container.innerHTML = state.acces
-    .map(
-      (acc) => `
-        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;border-bottom:1px solid var(--border)">
-            <input type="checkbox" id="perm-${acc.id}" value="${acc.id}"
-                ${authorized.includes(acc.id) ? "checked" : ""} disabled
-                style="width:16px;height:16px;accent-color:var(--primary)">
-            <span style="font-size:.9rem;flex:1">${acc.name}</span>
-            <span class="ip-badge">${acc.ip || "—"}</span>
-        </label>`,
-    )
-    .join("");
+  var html = "";
+  state.acces.forEach(function(acc) {
+    var isChecked = authorized.includes(acc.id);
+    var slots = schedules[acc.id] || [];
+    if (editable) {
+      html += '<div style="border-bottom:1px solid var(--border);padding:8px 0">';
+      html += '<label style="display:flex;align-items:center;gap:10px;cursor:pointer">';
+      html += '<input type="checkbox" value="' + acc.id + '" ' + (isChecked ? "checked" : "") + ' onchange="toggleProfilAccess(\'' + acc.id + '\')" style="width:16px;height:16px;accent-color:var(--primary)">';
+      html += '<span style="font-size:.9rem;flex:1">' + acc.name + '</span>';
+      html += '<span class="ip-badge">' + (acc.ip || "\u2014") + '</span>';
+      html += '</label>';
+      if (isChecked) {
+        html += '<div id="pslots-' + acc.id + '" style="margin-top:6px;padding-left:26px">';
+        if (slots.length === 0) {
+          html += '<p style="font-size:.8rem;color:var(--text-muted);margin:4px 0">Aucun créneau (accès illimité)</p>';
+        }
+        slots.forEach(function(s, i) {
+          html += '<div style="display:flex;align-items:center;gap:6px;margin:4px 0">';
+          html += '<input type="time" value="' + (s.start || "08:00") + '" onchange="updateProfilSlot(\'' + acc.id + '\',' + i + ',\'start\',this.value)" style="font-size:.85rem;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input,#fff);color:var(--text)">';
+          html += '<span style="font-size:.85rem">\u2192</span>';
+          html += '<input type="time" value="' + (s.end || "18:00") + '" onchange="updateProfilSlot(\'' + acc.id + '\',' + i + ',\'end\',this.value)" style="font-size:.85rem;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--bg-input,#fff);color:var(--text)">';
+          html += '<button onclick="removeProfilSlot(\'' + acc.id + '\',' + i + ')" style="background:none;border:none;color:var(--danger,#e74c3c);cursor:pointer;font-size:1rem;padding:0 4px">\u2715</button>';
+          html += '</div>';
+        });
+        html += '<button onclick="addProfilSlot(\'' + acc.id + '\')" style="margin-top:4px;font-size:.8rem;padding:3px 10px;border:1px dashed var(--primary);background:none;color:var(--primary);border-radius:6px;cursor:pointer">+ Créneau</button>';
+        html += '</div>';
+      }
+      html += '</div>';
+    } else {
+      var slotSummary = "";
+      if (isChecked && slots.length > 0) {
+        slotSummary = slots.map(function(s) { return (s.start || "?") + "\u2013" + (s.end || "?"); }).join(", ");
+      } else if (isChecked) {
+        slotSummary = "Illimité";
+      }
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
+      html += '<input type="checkbox" value="' + acc.id + '" ' + (isChecked ? "checked" : "") + ' disabled style="width:16px;height:16px;accent-color:var(--primary)">';
+      html += '<span style="font-size:.9rem;flex:1">' + acc.name + '</span>';
+      if (isChecked && slotSummary) {
+        html += '<span style="font-size:.75rem;color:var(--text-muted);margin-right:6px">' + slotSummary + '</span>';
+      }
+      html += '<span class="ip-badge">' + (acc.ip || "\u2014") + '</span>';
+      html += '</div>';
+    }
+  });
+  container.innerHTML = html;
 }
+
+function _reRenderProfilSlots(accId) {
+  var allChecked = Array.from(document.querySelectorAll('#profil-permissions-container input[type="checkbox"]:checked')).map(function(c) { return c.value; });
+  var _prof = state.profils.find(function(p) { return p.id === currentEditingProfilId; });
+  if (_prof) {
+    var tmpProf = Object.assign({}, _prof, { authorized_access: allChecked });
+    _renderProfilAccessRights(tmpProf, true);
+  }
+}
+
+function toggleProfilAccess(accId) {
+  var schedules = window._editingProfilSchedules || {};
+  var cb = document.querySelector('#profil-permissions-container input[value="' + accId + '"]');
+  if (!cb) return;
+  if (cb.checked) {
+    if (!schedules[accId]) schedules[accId] = [];
+  } else {
+    delete schedules[accId];
+  }
+  window._editingProfilSchedules = schedules;
+  _reRenderProfilSlots(accId);
+}
+
+function addProfilSlot(accId) {
+  var schedules = window._editingProfilSchedules || {};
+  if (!schedules[accId]) schedules[accId] = [];
+  schedules[accId].push({ start: "08:00", end: "18:00" });
+  window._editingProfilSchedules = schedules;
+  _reRenderProfilSlots(accId);
+}
+
+function removeProfilSlot(accId, idx) {
+  var schedules = window._editingProfilSchedules || {};
+  if (schedules[accId]) schedules[accId].splice(idx, 1);
+  window._editingProfilSchedules = schedules;
+  _reRenderProfilSlots(accId);
+}
+
+function updateProfilSlot(accId, idx, field, value) {
+  var schedules = window._editingProfilSchedules || {};
+  if (schedules[accId] && schedules[accId][idx]) {
+    schedules[accId][idx][field] = value;
+  }
+  window._editingProfilSchedules = schedules;
+}
+
 
 function closeProfilEdit() {
   document.getElementById("profils-list-view").style.display = "block";
@@ -1603,9 +1797,8 @@ function toggleProfilEditMode(isEditable) {
     const el = document.getElementById(id);
     if (el) el.disabled = !isEditable;
   });
-  document
-    .querySelectorAll('#profil-permissions-container input[type="checkbox"]')
-    .forEach((cb) => (cb.disabled = !isEditable));
+  const _pEdit = state.profils.find((p) => p.id === currentEditingProfilId);
+  if (_pEdit) _renderProfilAccessRights(_pEdit, isEditable);
   document.getElementById("btn-unlock-prof").style.display = isEditable
     ? "none"
     : "block";
@@ -1650,6 +1843,7 @@ async function saveProfilModifications() {
     badge: document.getElementById("edit-prof-badge").value.trim() || null,
     remote: document.getElementById("edit-prof-remote").value.trim() || null,
     authorized_access: authorized,
+    access_schedules: window._editingProfilSchedules || {},
   };
 
   try {
@@ -1662,8 +1856,8 @@ async function saveProfilModifications() {
     }
     const idx = state.profils.findIndex((p) => p.id === currentEditingProfilId);
     if (idx !== -1) Object.assign(state.profils[idx], updates);
-    toggleProfilEditMode(false);
     showToast("✅ Profil mis à jour");
+    closeProfilEdit();
   } catch (err) {
     showToast("Erreur : " + err.message, "error");
   }
