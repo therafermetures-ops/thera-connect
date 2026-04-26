@@ -378,91 +378,26 @@
         <!-- ALERTES -->
         <section id="page-alerts" class="page">
           <div class="header-actions">
-            <h2>⚠️ Alertes</h2>
-            <div style="display: flex; gap: 10px">
-              <button class="btn-primary" onclick="showAlertSubPage('setup')">
-                Créer une alerte
-              </button>
-              <button class="btn-outline" onclick="showAlertSubPage('logs')">
-                Journal
-              </button>
+            <div>
+              <h2>🔔 Alertes</h2>
+              <p style="color:var(--text-sub);font-size:.82rem;margin-top:4px">Surveillance automatique de vos accès</p>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn-primary" onclick="openAlertModal()">+ Nouvelle règle</button>
+              <button class="btn-outline" onclick="showAlertLogs()">📜 Journal</button>
             </div>
           </div>
-
-          <!-- Liste des règles actives -->
-          <div
-            id="alert-rules-list"
-            class="card shadow"
-            style="margin-bottom: 16px"
-          >
-            <h3 style="margin-bottom: 12px">📋 Règles actives</h3>
-            <div id="alert-rules-container">
-              <p style="color: var(--text-muted); font-size: 0.88rem">
-                Aucune règle configurée.
-              </p>
+          <div id="alert-rules-container"></div>
+          <div id="alert-logs-view" style="display:none" class="card shadow">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0">📜 Journal des alertes</h3>
+              <button class="btn-outline" onclick="showAlertRules()" style="font-size:.85rem">← Règles</button>
             </div>
-          </div>
-
-          <div id="alert-setup-view" class="card shadow">
-            <h3>Nouvelle Règle d'Alerte</h3>
-            <div class="form-group">
-              <label>Accès concerné :</label>
-              <select id="alert-target-access"></select>
-            </div>
-            <div class="form-group">
-              <label>Type d'alerte :</label>
-              <select id="alert-type-select" onchange="toggleAlertFields()">
-                <option value="stay_open">
-                  🚪 Portail ouvert trop longtemps
-                </option>
-                <option value="wrong_hours">🕒 Ouverture hors-horaires</option>
-                <option value="hardware_cell">❌ Défaut capteur</option>
-              </select>
-            </div>
-            <div id="field-duration" class="card-inner">
-              <label>Durée limite :</label>
-              <select id="alert-limit-time">
-                <option value="5">5 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="30">30 minutes</option>
-              </select>
-            </div>
-            <div id="field-planning" style="display: none" class="card-inner">
-              <label>Jours de surveillance :</label>
-              <div id="alert-days-grid" class="days-selector"></div>
-              <div class="time-range" style="margin-top: 10px">
-                <label>De :</label>
-                <input type="time" id="alert-start" value="08:00" />
-                <label>À :</label>
-                <input type="time" id="alert-end" value="18:00" />
-              </div>
-            </div>
-            <button
-              class="btn-success"
-              style="width: 100%; margin-top: 15px"
-              onclick="saveNewAlertRule()"
-            >
-              Enregistrer
-            </button>
-          </div>
-          <div id="alert-logs-view" style="display: none" class="card shadow">
-            <h3>📜 Journal des alertes</h3>
             <div id="alert-history-list" class="list-container">
-              <p
-                style="
-                  text-align: center;
-                  color: var(--text-muted);
-                  padding: 24px;
-                "
-              >
-                Aucune alerte récente.
-              </p>
+              <p style="text-align:center;color:var(--text-muted);padding:24px">Aucune alerte récente.</p>
             </div>
           </div>
         </section>
-
-        <!-- CLÉS & BADGES -->
         <section id="page-cles" class="page">
           <div class="header-actions"><h2>🔑 Clés & Badges</h2></div>
           <div class="card shadow">
@@ -657,6 +592,50 @@
           </div>
         </section>
       </main>
+    </div>
+
+    <!-- MODAL NOUVELLE REGLE ALERTE -->
+    <div id="modal-alert-rule" class="modal" style="display:none">
+      <div class="modal-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="margin:0">🔔 Nouvelle règle d'alerte</h3>
+          <button onclick="closeAlertModal()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);line-height:1">×</button>
+        </div>
+        <div class="form-group">
+          <label>Accès concerné :</label>
+          <select id="alert-target-access" style="width:100%"></select>
+        </div>
+        <div class="form-group">
+          <label>Type d'alerte :</label>
+          <select id="alert-type-select" onchange="toggleAlertFields()" style="width:100%">
+            <option value="stay_open">🚪 Portail ouvert trop longtemps</option>
+            <option value="wrong_hours">🕒 Ouverture hors-horaires</option>
+            <option value="hardware_cell">❌ Défaut capteur</option>
+          </select>
+        </div>
+        <div id="field-duration" class="card-inner" style="margin-bottom:12px">
+          <label style="display:block;margin-bottom:6px;font-size:.85rem;font-weight:600">Durée limite :</label>
+          <select id="alert-limit-time" style="width:100%">
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+          </select>
+        </div>
+        <div id="field-planning" style="display:none" class="card-inner">
+          <label style="display:block;margin-bottom:6px;font-size:.85rem;font-weight:600">Jours de surveillance :</label>
+          <div id="alert-days-grid" class="days-selector"></div>
+          <div class="time-range" style="margin-top:10px">
+            <label>De :</label>
+            <input type="time" id="alert-start" value="08:00" />
+            <label>À :</label>
+            <input type="time" id="alert-end" value="18:00" />
+          </div>
+        </div>
+        <button class="btn-success" style="width:100%;margin-top:16px;padding:13px" onclick="saveNewAlertRule()">
+          ✅ Enregistrer la règle
+        </button>
+      </div>
     </div>
 
     <!-- MODALES -->

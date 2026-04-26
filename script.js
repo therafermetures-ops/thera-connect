@@ -1930,66 +1930,146 @@ function _copyLink(url) {
    ALERTES
 ================================================================== */
 function renderAlertsSetup() {
-  const sv = document.getElementById("alert-setup-view");
+  showAlertRules();
+}
+
+function showAlertRules() {
+  const rc = document.getElementById("alert-rules-container");
   const lv = document.getElementById("alert-logs-view");
-  if (sv) sv.style.display = "block";
+  if (rc) rc.style.display = "block";
   if (lv) lv.style.display = "none";
-  prepareAlertSetup();
   renderAlertRules();
 }
 
-function showAlertSubPage(view) {
-  const sv = document.getElementById("alert-setup-view");
+function showAlertLogs() {
+  const rc = document.getElementById("alert-rules-container");
   const lv = document.getElementById("alert-logs-view");
-  if (sv) sv.style.display = view === "setup" ? "block" : "none";
-  if (lv) lv.style.display = view === "logs" ? "block" : "none";
-  if (view === "setup") {
-    prepareAlertSetup();
-    renderAlertRules();
-  } else renderAlertLogs();
+  if (rc) rc.style.display = "none";
+  if (lv) lv.style.display = "block";
+  renderAlertLogs();
+}
+
+function openAlertModal() {
+  prepareAlertSetup();
+  const m = document.getElementById("modal-alert-rule");
+  if (m) m.style.display = "flex";
+}
+
+function closeAlertModal() {
+  const m = document.getElementById("modal-alert-rule");
+  if (m) m.style.display = "none";
 }
 
 function renderAlertRules() {
-  const container = document.getElementById("alert-rules-list");
+  const container = document.getElementById("alert-rules-container");
   if (!container) return;
-  const typeLabels = {
-    stay_open: "🚪 Ouvert trop longtemps",
-    wrong_hours: "🕒 Hors-horaires",
-    hardware_cell: "❌ Défaut capteur",
+
+  const typeInfo = {
+    stay_open:     { icon: "\u{1F6AA}", label: "Ouvert trop longtemps", color: "var(--orange,#f0883e)" },
+    wrong_hours:   { icon: "\u{1F552}", label: "Hors-horaires",         color: "var(--primary,#4a9eff)" },
+    hardware_cell: { icon: "\u274C",   label: "D\u00e9faut capteur",   color: "var(--red,#e74c3c)" },
   };
-  if (!state.alertRules.length) {
-    container.innerHTML =
-      '<p style="color:var(--text-muted);font-size:.85rem;text-align:center;padding:16px">Aucune règle configurée.</p>';
+
+  if (!state.alertRules || !state.alertRules.length) {
+    container.innerHTML = `
+      <div class="card shadow" style="text-align:center;padding:40px 20px;">
+        <div style="font-size:3rem;margin-bottom:12px">\u{1F515}</div>
+        <p style="color:var(--text-muted);margin-bottom:16px">Aucune r\u00e8gle de surveillance configur\u00e9e.</p>
+        <button class="btn-primary" onclick="openAlertModal()">+ Cr\u00e9er ma premi\u00e8re r\u00e8gle</button>
+      </div>`;
     return;
   }
-  container.innerHTML = state.alertRules
-    .map((r, i) => {
-      const acc = state.acces.find((a) => a.id === r.access_id);
-      return `<div class="alert-item" style="display:flex;justify-content:space-between;align-items:center;">
-            <div>
-                <div style="font-weight:600;font-size:.88rem">${typeLabels[r.type] || r.type}</div>
-                <small>${acc ? acc.name : "Accès inconnu"}${r.duration ? ` · ${r.duration} min` : ""}</small>
-            </div>
-            <button class="btn-small" style="color:var(--red)" onclick="deleteAlertRule('${r.id}')">✕</button>
-        </div>`;
-    })
-    .join("");
+
+  // Grouper par acc\u00e8s
+  const grouped = {};
+  state.alertRules.forEach(function(r) {
+    const acc = state.acces.find(function(a) { return a.id === r.access_id; });
+    const key = r.access_id || "unknown";
+    if (!grouped[key]) grouped[key] = { name: acc ? acc.name : "Acc\u00e8s inconnu", rules: [] };
+    grouped[key].rules.push(r);
+  });
+
+  var html = "";
+  Object.values(grouped).forEach(function(group) {
+    html += '<div class="card shadow" style="margin-bottom:16px">';
+    html += '<div style="font-size:.8rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px">\u{1F4CD} ' + group.name + '</div>';
+    group.rules.forEach(function(r) {
+      var t = typeInfo[r.type] || { icon: "\u26A0\uFE0F", label: r.type, color: "#888" };
+      var isOn = r.enabled !== false;
+      var detail = r.duration ? r.duration + " min" : (r.start_time ? r.start_time + " \u2013 " + r.end_time : "Toujours actif");
+      html += '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card-inner);border-radius:10px;margin-bottom:8px;">';
+      html += '<div style="width:36px;height:36px;border-radius:50%;background:' + t.color + '22;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">' + t.icon + '</div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:600;font-size:.9rem">' + t.label + '</div>';
+      html += '<div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + detail + '</div>';
+      html += '</div>';
+      html += '<button onclick="toggleAlertRule(\'' + r.id + '\')" title="' + (isOn ? "D\u00e9sactiver" : "Activer") + '" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:4px;flex-shrink:0">';
+      html += isOn ? "\u{1F7E2}" : "\u26AB";
+      html += '</button>';
+      html += '<button onclick="confirmDeleteAlert(\'' + r.id + '\')" style="flex-shrink:0;background:none;border:1px solid var(--red,#e74c3c);color:var(--red,#e74c3c);border-radius:7px;padding:5px 10px;cursor:pointer;font-size:.8rem">\u{1F5D1} Supprimer</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function confirmDeleteAlert(ruleId) {
+  // Confirmation inline — pas de confirm() pour \u00e9viter le Web Lock
+  var existing = document.getElementById("alert-delete-toast");
+  if (existing) existing.remove();
+  var toast = document.createElement("div");
+  toast.id = "alert-delete-toast";
+  toast.style.cssText = "position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:14px 20px;border-radius:12px;z-index:3000;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.4);border:1px solid var(--red,#e74c3c)";
+  toast.innerHTML = '<span style="font-size:.9rem">Supprimer cette r\u00e8gle ?</span>'
+    + '<button onclick="deleteAlertRule(\'' + ruleId + '\');document.getElementById(\'alert-delete-toast\')?.remove()" style="background:var(--red,#e74c3c);color:#fff;border:none;border-radius:7px;padding:6px 14px;cursor:pointer;font-weight:600">Oui</button>'
+    + '<button onclick="document.getElementById(\'alert-delete-toast\').remove()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 14px;cursor:pointer">Non</button>';
+  document.body.appendChild(toast);
+  setTimeout(function() { var t = document.getElementById("alert-delete-toast"); if (t) t.remove(); }, 6000);
+}
+
+async function toggleAlertRule(ruleId) {
+  const rule = state.alertRules.find(function(r) { return r.id === ruleId; });
+  if (!rule) return;
+  const newVal = rule.enabled === false;
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from("alert_rules").update({ enabled: newVal }).eq("id", ruleId);
+      if (error) throw error;
+    }
+    rule.enabled = newVal;
+    renderAlertRules();
+    showToast(newVal ? "\u2705 R\u00e8gle activ\u00e9e" : "\u23F8\uFE0F R\u00e8gle d\u00e9sactiv\u00e9e");
+  } catch(err) {
+    showToast("Erreur : " + err.message, "error");
+  }
+}
+
+async function deleteAlertRule(ruleId) {
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient.from("alert_rules").delete().eq("id", ruleId);
+      if (error) throw error;
+    }
+    state.alertRules = state.alertRules.filter(function(r) { return r.id !== ruleId; });
+    showToast("\u2713 R\u00e8gle supprim\u00e9e");
+    renderAlertRules();
+  } catch(err) {
+    showToast("Erreur : " + err.message, "error");
+  }
 }
 
 function prepareAlertSetup() {
   const select = document.getElementById("alert-target-access");
   if (select)
-    select.innerHTML = state.acces
-      .map((a) => `<option value="${a.id}">${a.name}</option>`)
-      .join("");
+    select.innerHTML = state.acces.map(function(a) {
+      return '<option value="' + a.id + '">' + a.name + '</option>';
+    }).join("");
   const dg = document.getElementById("alert-days-grid");
   if (dg)
-    dg.innerHTML = ["L", "M", "M", "J", "V", "S", "D"]
-      .map(
-        (d, i) =>
-          `<label><input type="checkbox" class="alert-day-check" value="${(i + 1) % 7}"> ${d}</label>`,
-      )
-      .join("");
+    dg.innerHTML = ["L","M","M","J","V","S","D"].map(function(d, i) {
+      return '<label><input type="checkbox" class="alert-day-check" value="' + ((i+1)%7) + '"> ' + d + '</label>';
+    }).join("");
   toggleAlertFields();
 }
 
@@ -2008,39 +2088,24 @@ async function saveNewAlertRule() {
     access_id: document.getElementById("alert-target-access")?.value,
     type: document.getElementById("alert-type-select")?.value,
     duration: parseInt(document.getElementById("alert-limit-time")?.value || 5),
-    days: Array.from(document.querySelectorAll(".alert-day-check:checked")).map(
-      (cb) => parseInt(cb.value),
-    ),
+    days: Array.from(document.querySelectorAll(".alert-day-check:checked")).map(function(cb) { return parseInt(cb.value); }),
     start_time: document.getElementById("alert-start")?.value || null,
     end_time: document.getElementById("alert-end")?.value || null,
+    enabled: true,
   };
   try {
     if (supabaseClient) {
-      const { error } = await supabaseClient.from("alert_rules").insert([rule]);
+      const { data, error } = await supabaseClient.from("alert_rules").insert([rule]).select().single();
       if (error) throw error;
+      state.alertRules.push(data);
+    } else {
+      rule.id = "local_" + Date.now();
+      state.alertRules.push(rule);
     }
-    state.alertRules.push(rule);
-    showToast("✅ Règle enregistrée");
-    showAlertSubPage("setup");
-  } catch (err) {
-    showToast("Erreur : " + err.message, "error");
-  }
-}
-
-async function deleteAlertRule(ruleId) {
-  if (!confirm("Supprimer cette règle d'alerte ?")) return;
-  try {
-    if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("alert_rules")
-        .delete()
-        .eq("id", ruleId);
-      if (error) throw error;
-    }
-    state.alertRules = state.alertRules.filter((r) => r.id !== ruleId);
-    showToast("✓ Règle supprimée");
-    renderAlertLogs();
-  } catch (err) {
+    showToast("\u2705 R\u00e8gle enregistr\u00e9e");
+    closeAlertModal();
+    renderAlertRules();
+  } catch(err) {
     showToast("Erreur : " + err.message, "error");
   }
 }
@@ -2049,75 +2114,24 @@ function addAlertLog(message) {
   state.alertLogs.unshift({ timestamp: new Date(), text: message });
   const limit = new Date();
   limit.setDate(limit.getDate() - 15);
-  state.alertLogs = state.alertLogs.filter((l) => l.timestamp > limit);
-  renderAlertLogs();
+  state.alertLogs = state.alertLogs.filter(function(l) { return l.timestamp > limit; });
 }
 
 function renderAlertLogs() {
   const container = document.getElementById("alert-history-list");
   if (!container) return;
-  container.innerHTML = "";
-
-  const typeLabels = {
-    stay_open: "🚪 Portail ouvert trop longtemps",
-    wrong_hours: "🌙 Ouverture hors-horaires",
-    hardware_cell: "⚡ Défaut capteur",
-  };
-
-  if (!state.alertRules || !state.alertRules.length) {
-    container.innerHTML +=
-      '<p style="color:var(--text-muted);font-size:.9rem;margin-bottom:8px">Aucune règle configurée.</p>';
-  } else {
-    const rulesTitle = document.createElement("h4");
-    rulesTitle.textContent = "Règles actives";
-    rulesTitle.style.marginBottom = "8px";
-    container.appendChild(rulesTitle);
-    state.alertRules.forEach((rule) => {
-      const acc = state.acces.find((a) => a.id === rule.access_id);
-      const el = document.createElement("div");
-      el.className = "log-item";
-      el.style.cssText =
-        "display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--card);border-radius:8px;margin-bottom:6px;";
-      el.innerHTML = `<div>
-                <div style="font-weight:600;font-size:.9rem">${typeLabels[rule.type] || rule.type}</div>
-                <div style="font-size:.8rem;color:var(--text-muted)">${acc ? acc.name : "Accès inconnu"} — ${rule.duration || "—"} min</div>
-            </div>
-            <button class="btn-danger" style="padding:4px 10px;font-size:.8rem" onclick="deleteAlertRule('${rule.id}')">🗑️</button>`;
-      container.appendChild(el);
-    });
+  if (!state.alertLogs || !state.alertLogs.length) {
+    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:32px">Aucune alerte d\u00e9clench\u00e9e r\u00e9cemment.</p>';
+    return;
   }
-
-  if (state.alertLogs && state.alertLogs.length > 0) {
-    const logsTitle = document.createElement("h4");
-    logsTitle.textContent = "Journal des événements";
-    logsTitle.style.cssText = "margin-top:16px;margin-bottom:8px";
-    container.appendChild(logsTitle);
-    // Keep only last 15 days
-    const cutoff = Date.now() - 15 * 24 * 60 * 60 * 1000;
-    const recentLogs = state.alertLogs.filter(
-      (l) => new Date(l.timestamp || l.created_at || l.ts).getTime() > cutoff,
-    );
-    if (!recentLogs.length) {
-      container.innerHTML +=
-        '<p style="color:var(--text-muted);font-size:.9rem">Aucun événement récent.</p>';
-    } else {
-      recentLogs
-        .slice(-50)
-        .reverse()
-        .forEach((log) => {
-          const el = document.createElement("div");
-          el.className = "log-item";
-          el.style.cssText =
-            "padding:8px;background:var(--card);border-radius:6px;margin-bottom:4px;font-size:.85rem;";
-          const d = new Date(log.created_at || log.ts);
-          el.textContent =
-            d.toLocaleString("fr-FR") +
-            " — " +
-            (log.message || log.type || "Alerte");
-          container.appendChild(el);
-        });
-    }
-  }
+  container.innerHTML = state.alertLogs.map(function(l) {
+    const d = new Date(l.timestamp);
+    const dateStr = d.toLocaleString("fr-FR", { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
+    return '<div style="display:flex;gap:10px;padding:10px;border-bottom:1px solid var(--border)">'
+      + '<span style="font-size:.78rem;color:var(--text-muted);white-space:nowrap">' + dateStr + '</span>'
+      + '<span style="font-size:.88rem">' + l.text + '</span>'
+      + '</div>';
+  }).join("");
 }
 
 /* ==================================================================
