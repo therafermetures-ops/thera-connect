@@ -505,40 +505,29 @@ function _renderUserAccessCards(container, profil, expiresAt) {
   const expObj = expiresAt ? new Date(expiresAt) : null;
   const isExpired = expObj && expObj <= Date.now();
 
-  myAccess.forEach((acc) => {
-    const allowed = _isAccessAllowedNow(acc) && _isProfilScheduleAllowedNow(profil, acc.id) && !isExpired;
-    const card = document.createElement("div");
-    card.className = "card animate-in";
-    card.style.cssText =
-      "margin-bottom:12px;border-left:4px solid " +
-      (isExpired ? "var(--red)" : allowed ? "var(--green)" : "var(--border)") +
-      ";";
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-        <div>
-          <div style="font-weight:700;font-size:1rem;margin-bottom:4px;">${acc.name}</div>
-          <div style="font-size:.8rem;color:var(--text-muted);">
-            <span class="ip-badge" style="margin-right:8px;"><i data-lucide="network" style="width:12px;height:12px;vertical-align:middle;"></i> ${acc.ip}</span>
-            <span style="color:${isExpired ? "var(--red)" : allowed ? "var(--green)" : "var(--text-muted)"};">
-              ${isExpired ? "❌ Accès expiré" : allowed ? "✅ Disponible maintenant" : "⏰ Hors plage horaire"}
-            </span>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;flex-shrink:0;">
-          ${
-            allowed
-              ? `
-            <button class="btn-outline" style="padding:8px 14px;font-size:.85rem;" onclick="event.stopPropagation();directCloseCommand('${acc.id}')">
-              <i data-lucide="lock" style="width:14px;height:14px;"></i> Fermer
-            </button>
-            <button class="btn-action-primary" style="padding:8px 16px;font-size:.85rem;" onclick="event.stopPropagation();openControlModal('${acc.id}','${acc.name}')">
-              <i data-lucide="lock-open" style="width:14px;height:14px;"></i> Ouvrir
-            </button>
-          `
-              : `<span style="font-size:.8rem;color:var(--text-muted);padding:8px 0;">Non disponible</span>`
-          }
-        </div>
-      </div>`;
+  myAccess.forEach(function(acc) {
+    var allowed = _isAccessAllowedNow(acc) && _isProfilScheduleAllowedNow(profil, acc.id) && !isExpired;
+    var s = _getAccesStatus(acc);
+    var borderColor = isExpired ? "var(--red)" : allowed ? "var(--green,#3fb950)" : "var(--border)";
+    var card = document.createElement("div");
+    card.className = "card item-card animate-in";
+    card.style.cssText = "cursor:" + (isExpired ? "not-allowed" : "pointer") + ";display:flex;align-items:center;gap:12px;padding:14px 16px;border-left:3px solid " + borderColor + ";margin-bottom:10px;";
+    if (!isExpired) {
+      card.onclick = function() {
+        if (allowed) {
+          openControlModal(acc.id, acc.name);
+        } else {
+          showToast("⏰ Accès hors plage horaire", "info");
+        }
+      };
+    }
+    var stateLabel = isExpired ? "EXPIRÉ" : s.stateLabel;
+    var stateColor = isExpired ? "var(--red,#e74c3c)" : s.stateColor;
+    card.innerHTML =
+      '<span style="width:10px;height:10px;border-radius:50%;background:' + s.dotColor + ';flex-shrink:0;display:inline-block" title="' + s.dotTitle + '"></span>'
+      + '<span style="font-weight:700;font-size:.95rem;flex:1">' + acc.name + '</span>'
+      + '<span style="font-size:.8rem;font-weight:600;color:' + stateColor + ';background:' + stateColor + '22;padding:3px 12px;border-radius:10px">' + stateLabel + '</span>'
+      + (isExpired ? '' : '<i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0"></i>');
     container.appendChild(card);
   });
   if (window.lucide) lucide.createIcons();
@@ -615,6 +604,26 @@ function _isProfilScheduleAllowedNow(profil, accId) {
   });
 }
 
+function _getAccesStatus(acc) {
+  const modStatus = state.moduleStatus
+    ? state.moduleStatus.find(function(m) { return m.access_id === acc.id; })
+    : null;
+  var stateLabel = "—";
+  var stateColor = "#888";
+  if (modStatus) {
+    if (modStatus.is_open === true)        { stateLabel = "OUVERT"; stateColor = "var(--orange,#f0883e)"; }
+    else if (!modStatus.has_fault)         { stateLabel = "FERMÉ"; stateColor = "var(--green,#3fb950)"; }
+    else                                   { stateLabel = "DÉFAUT"; stateColor = "var(--red,#e74c3c)"; }
+  }
+  var dotColor = acc._online === true  ? "var(--green,#3fb950)"
+               : acc._online === false ? "var(--red,#e74c3c)"
+               : "#bbb";
+  var dotTitle = acc._online === true  ? "Connecté"
+               : acc._online === false ? "Hors ligne"
+               : "Statut inconnu";
+  return { stateLabel: stateLabel, stateColor: stateColor, dotColor: dotColor, dotTitle: dotTitle };
+}
+
 function renderFavorites() {
   const container = document.getElementById("favorites-container");
   if (!container) return;
@@ -627,117 +636,23 @@ function renderFavorites() {
     return;
   }
 
-  favs.forEach((acc) => {
-    // Determine real status from module_status
-    const modStatus = state.moduleStatus
-      ? state.moduleStatus.find((m) => m.access_id === acc.id)
-      : null;
-    let statusLabel = "DÉFAUT";
-    let statusClass = "status-defaut";
-    let statusColor = "#888";
-
-    if (modStatus) {
-      if (modStatus.is_open === true) {
-        statusLabel = "OUVERT";
-        statusClass = "status-ouvert";
-        statusColor = "var(--orange, #f0883e)";
-      } else if (modStatus.is_open === false && !modStatus.has_fault) {
-        statusLabel = "FERMÉ";
-        statusClass = "status-ferme";
-        statusColor = "var(--green, #3fb950)";
-      } else if (modStatus.has_fault) {
-        statusLabel = "DÉFAUT";
-        statusClass = "status-defaut";
-        statusColor = "#e74c3c";
-      }
-    } else {
-      // Try to guess from last known state
-      statusLabel = "—";
-      statusColor = "#888";
-    }
-
-    const card = document.createElement("div");
+  favs.forEach(function(acc) {
+    var s = _getAccesStatus(acc);
+    var card = document.createElement("div");
     card.className = "card item-card animate-in";
-    card.style.cursor = "pointer";
-    card.onclick = () => openFavoriteModal(acc.id);
-    card.innerHTML = `
-            <div class="main-info">
-                <div class="avatar" style="background:${statusColor}20;color:${statusColor}">
-                    <i data-lucide="door-open"></i>
-                </div>
-                <div>
-                    <div style="font-weight:700">${acc.name}</div>
-                    <div class="ip-badge"><i data-lucide="network"></i>${acc.ip || "—"}</div>
-                </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-                <span class="status-pill ${statusClass}" style="background:${statusColor}20;color:${statusColor};padding:3px 10px;border-radius:12px;font-size:.8rem;font-weight:600">
-                    ${statusLabel}
-                </span>
-                <div class="card-arrow"><i data-lucide="chevron-right"></i></div>
-            </div>`;
+    card.style.cssText = "cursor:pointer;display:flex;align-items:center;gap:12px;padding:14px 16px;";
+    card.onclick = function() { openControlModal(acc.id, acc.name); };
+    card.innerHTML =
+      '<span style="width:10px;height:10px;border-radius:50%;background:' + s.dotColor + ';flex-shrink:0;display:inline-block" title="' + s.dotTitle + '"></span>'
+      + '<span style="font-weight:700;font-size:.95rem;flex:1">' + acc.name + '</span>'
+      + '<span style="font-size:.8rem;font-weight:600;color:' + s.stateColor + ';background:' + s.stateColor + '22;padding:3px 12px;border-radius:10px">' + s.stateLabel + '</span>'
+      + '<i data-lucide="chevron-right" style="width:16px;height:16px;color:var(--text-muted);flex-shrink:0"></i>';
     container.appendChild(card);
   });
 
   if (window.lucide) lucide.createIcons();
 }
 
-function openFavoriteModal(accId) {
-  const acc = state.acces.find((a) => a.id === accId);
-  if (!acc) return;
-
-  const modStatus = state.moduleStatus
-    ? state.moduleStatus.find((m) => m.access_id === accId)
-    : null;
-  const isOpen = modStatus ? modStatus.is_open : false;
-
-  // Create modal overlay
-  let overlay = document.getElementById("fav-modal-overlay");
-  if (overlay) overlay.remove();
-  overlay = document.createElement("div");
-  overlay.id = "fav-modal-overlay";
-  overlay.style.cssText =
-    "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:flex;align-items:center;justify-content:center;";
-  overlay.onclick = (e) => {
-    if (e.target === overlay) overlay.remove();
-  };
-
-  overlay.innerHTML = `
-        <div class="card shadow" style="min-width:280px;max-width:360px;width:90%;padding:24px;border-radius:16px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-                <h3 style="margin:0">${acc.name}</h3>
-                <button onclick="document.getElementById('fav-modal-overlay').remove()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted)">×</button>
-            </div>
-            <p style="color:var(--text-sub);font-size:.9rem;margin-bottom:20px">
-                Statut actuel : <strong>${isOpen ? "OUVERT" : modStatus ? "FERMÉ" : "—"}</strong>
-            </p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <button class="btn-primary" onclick="document.getElementById('fav-modal-overlay').remove();openControlModal('${accId}','${acc.name}')" style="padding:14px;font-size:1rem">
-                    🔓 OUVRIR
-                </button>
-                <button class="btn-danger" onclick="confirmFavoriteCommand('${accId}', 'close')" style="padding:14px;font-size:1rem">
-                    🔒 FERMER
-                </button>
-            </div>
-        </div>`;
-
-  document.body.appendChild(overlay);
-}
-
-function confirmFavoriteCommand(accId, action) {
-  const acc = state.acces.find((a) => a.id === accId);
-  if (!acc) return;
-  const label = action === "open" ? "ouvrir" : "fermer";
-  if (!confirm(`Confirmer : ${label} "${acc.name}" ?`)) return;
-
-  document.getElementById("fav-modal-overlay")?.remove();
-  currentTargetId = accId;
-  _executeCommand(action === "open" ? "OUVRIR" : "FERMER");
-}
-
-/* ==================================================================
-   COMMANDES ESP32 — Modale + Slider de confirmation
-================================================================== */
 function directCloseCommand(accId) {
   if (!confirm('Fermer cet accès ?')) return;
   currentTargetId = accId;
