@@ -220,6 +220,12 @@ function applyPermissions(userRole, expiryDate = null) {
 
   const role = (userRole || "").toLowerCase().replace(/\s/g, "_");
 
+  // Nav mobile : Accès et Réglages visibles seulement pour les admins
+  ["bnav-acces", "bnav-reglages"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = (role === "super_admin" || role === "administrateur") ? "" : "none";
+  });
+
   if (role === "super_admin") {
     _injectSuperAdminBadge();
   } else if (role === "administrateur") {
@@ -522,10 +528,10 @@ function _renderUserAccessCards(container, profil, expiresAt) {
           ${
             allowed
               ? `
-            <button class="btn-outline" style="padding:8px 14px;font-size:.85rem;" onclick="sendCommand('${acc.id}','close')">
+            <button class="btn-outline" style="padding:8px 14px;font-size:.85rem;" onclick="event.stopPropagation();directCloseCommand('${acc.id}')">
               <i data-lucide="lock" style="width:14px;height:14px;"></i> Fermer
             </button>
-            <button class="btn-action-primary" style="padding:8px 16px;font-size:.85rem;" onclick="sendCommand('${acc.id}','open')">
+            <button class="btn-action-primary" style="padding:8px 16px;font-size:.85rem;" onclick="event.stopPropagation();openControlModal('${acc.id}','${acc.name}')">
               <i data-lucide="lock-open" style="width:14px;height:14px;"></i> Ouvrir
             </button>
           `
@@ -706,7 +712,7 @@ function openFavoriteModal(accId) {
                 Statut actuel : <strong>${isOpen ? "OUVERT" : modStatus ? "FERMÉ" : "—"}</strong>
             </p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <button class="btn-primary" onclick="confirmFavoriteCommand('${accId}', 'open')" style="padding:14px;font-size:1rem">
+                <button class="btn-primary" onclick="document.getElementById('fav-modal-overlay').remove();openControlModal('${accId}','${acc.name}')" style="padding:14px;font-size:1rem">
                     🔓 OUVRIR
                 </button>
                 <button class="btn-danger" onclick="confirmFavoriteCommand('${accId}', 'close')" style="padding:14px;font-size:1rem">
@@ -725,30 +731,19 @@ function confirmFavoriteCommand(accId, action) {
   if (!confirm(`Confirmer : ${label} "${acc.name}" ?`)) return;
 
   document.getElementById("fav-modal-overlay")?.remove();
-
-  // Send command
-  const relay = acc.relay || 1;
-  const cmd = action === "open" ? "open" : "close";
-  _sendHttpCommand(acc.ip, relay, cmd);
-  showToast(`✓ Commande ${label} envoyée`);
-
-  // Update local status optimistically
-  if (!state.moduleStatus) state.moduleStatus = [];
-  let mod = state.moduleStatus.find((m) => m.access_id === accId);
-  if (!mod) {
-    mod = { access_id: accId };
-    state.moduleStatus.push(mod);
-  }
-  mod.is_open = action === "open";
-  mod.has_fault = false;
-
-  // Re-render favorites after a short delay
-  setTimeout(renderFavorites, 800);
+  currentTargetId = accId;
+  _executeCommand(action === "open" ? "OUVRIR" : "FERMER");
 }
 
 /* ==================================================================
    COMMANDES ESP32 — Modale + Slider de confirmation
 ================================================================== */
+function directCloseCommand(accId) {
+  if (!confirm('Fermer cet accès ?')) return;
+  currentTargetId = accId;
+  _executeCommand('FERMER');
+}
+
 function openControlModal(accId, accName) {
   currentTargetId = accId;
   const el = document.getElementById("modal-title-target");
