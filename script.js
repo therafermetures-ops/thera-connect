@@ -220,10 +220,10 @@ function applyPermissions(userRole, expiryDate = null) {
 
   const role = (userRole || "").toLowerCase().replace(/\s/g, "_");
 
-  // Nav mobile : Accès et Réglages visibles seulement pour les admins
-  ["bnav-acces", "bnav-reglages"].forEach((id) => {
+  // Nav mobile : Alertes et Réglages toujours masqués dans la bottom nav
+  ["bnav-alerts", "bnav-reglages"].forEach((id) => {
     const el = document.getElementById(id);
-    if (el) el.style.display = (role === "super_admin" || role === "administrateur") ? "" : "none";
+    if (el) el.style.display = "none";
   });
 
   if (role === "super_admin") {
